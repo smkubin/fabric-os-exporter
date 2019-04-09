@@ -18,7 +18,6 @@ var (
 
 func init() {
 	registerCollector("uptime", defaultEnabled, NewUptimeCollector)
-	labelnames := []string{"target"}
 	uptimeDesc = prometheus.NewDesc(prefix+"uptime", "Displays how long the system has been running", labelnames, nil)
 	loadLongtermDesc = prometheus.NewDesc(prefix+"load_longterm", "The average system load over a period of the last 15 minutes.", labelnames, nil)
 	loadMidtermDesc = prometheus.NewDesc(prefix+"load_midterm", "The average system load over a period of the last 5 minutes.", labelnames, nil)
@@ -37,7 +36,7 @@ func (*uptimeCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- uptimeDesc
 }
 
-func (c *uptimeCollector) Collect(client *connector.SSHConnection, ch chan<- prometheus.Metric) error {
+func (c *uptimeCollector) Collect(client *connector.SSHConnection, ch chan<- prometheus.Metric, labelvalue []string) error {
 	log.Debugln("uptime collector is starting")
 	results, err := client.RunCommand("uptime")
 	if err != nil {
@@ -48,10 +47,10 @@ func (c *uptimeCollector) Collect(client *connector.SSHConnection, ch chan<- pro
 	loadLongterm, err := strconv.ParseFloat(strings.Trim(result[10], ","), 64)
 	loadMidterm, err := strconv.ParseFloat(strings.Trim(result[11], ","), 64)
 	loadShortterm, err := strconv.ParseFloat(strings.Trim(result[12], ",\n"), 64)
-	ch <- prometheus.MustNewConstMetric(uptimeDesc, prometheus.GaugeValue, uptime, client.Host())
-	ch <- prometheus.MustNewConstMetric(loadLongtermDesc, prometheus.GaugeValue, loadLongterm, client.Host())
-	ch <- prometheus.MustNewConstMetric(loadMidtermDesc, prometheus.GaugeValue, loadMidterm, client.Host())
-	ch <- prometheus.MustNewConstMetric(loadShorttermDesc, prometheus.GaugeValue, loadShortterm, client.Host())
+	ch <- prometheus.MustNewConstMetric(uptimeDesc, prometheus.GaugeValue, uptime, labelvalue...)
+	ch <- prometheus.MustNewConstMetric(loadLongtermDesc, prometheus.GaugeValue, loadLongterm, labelvalue...)
+	ch <- prometheus.MustNewConstMetric(loadMidtermDesc, prometheus.GaugeValue, loadMidterm, labelvalue...)
+	ch <- prometheus.MustNewConstMetric(loadShorttermDesc, prometheus.GaugeValue, loadShortterm, labelvalue...)
 	return err
 }
 

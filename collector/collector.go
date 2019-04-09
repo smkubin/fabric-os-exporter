@@ -22,11 +22,12 @@ var (
 	scrapeSuccessDesc  *prometheus.Desc
 	factories          = make(map[string]func() (Collector, error))
 	collectorState     = make(map[string]*bool)
+	labelnames         = []string{"target"}
 )
 
 func init() {
-	scrapeDurationDesc = prometheus.NewDesc(prefix+"collector_duration_seconds", "Duration of a collector scrape for one target", []string{"target"}, nil) // metric name, help information, Arrar of defined label names, defined labels
-	scrapeSuccessDesc = prometheus.NewDesc(prefix+"collector_success", "Scrape of target was sucessful", []string{"target"}, nil)
+	scrapeDurationDesc = prometheus.NewDesc(prefix+"collector_duration_seconds", "Duration of a collector scrape for one target", labelnames, nil) // metric name, help information, Arrar of defined label names, defined labels
+	scrapeSuccessDesc = prometheus.NewDesc(prefix+"collector_success", "Scrape of target was sucessful", labelnames, nil)
 }
 
 // fabricosCollector implements the prometheus.Collector interface
@@ -93,6 +94,7 @@ func (c FabricOSCollector) Collect(ch chan<- prometheus.Metric) {
 func (c *FabricOSCollector) collectForHost(host string, ch chan<- prometheus.Metric, wg *sync.WaitGroup) {
 	defer wg.Done()
 	start := time.Now()
+	labelvalue := []string{host}
 	success := 0
 	defer func() {
 		ch <- prometheus.MustNewConstMetric(scrapeDurationDesc, prometheus.GaugeValue, time.Since(start).Seconds(), host)
@@ -106,7 +108,7 @@ func (c *FabricOSCollector) collectForHost(host string, ch chan<- prometheus.Met
 	success = 1
 	// fabricClient := connector.NewFabricClient(conn)
 	for name, col := range c.Collectors {
-		err = col.Collect(conn, ch)
+		err = col.Collect(conn, ch, labelvalue)
 		if err != nil && err.Error() != "EOF" {
 			log.Errorln(name + ": " + err.Error())
 		}
@@ -121,5 +123,5 @@ type Collector interface {
 
 	//Collect collects metrics from FabricOS
 	// Collect(client utils.SpectrumClient, ch chan<- prometheus.Metric, labelvalues []string) error
-	Collect(client *connector.SSHConnection, ch chan<- prometheus.Metric) error
+	Collect(client *connector.SSHConnection, ch chan<- prometheus.Metric, labelvalue []string) error
 }
