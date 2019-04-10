@@ -26,7 +26,8 @@ Exporter for devices running Fabric OS to use with https://prometheus.io/
         cd src
         mkdir github.com
         cd github.com
-        git clone git@github.ibm.com:genctl/fleetman-workspace.git
+        git clone git@github.ibm.com:ZaaS/fabric-os-exporter.git
+        cd fabric-os-exporter
         go build
         ```
     * docker image
