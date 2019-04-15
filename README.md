@@ -18,7 +18,7 @@ Exporter for devices running Fabric OS to use with https://prometheus.io/
 * Prerequisites:
     * Go compiler
 * Building
-    * binary
+    * Binary
         ```
         export GOPATH=your_gopath
         cd your_gopath
@@ -27,15 +27,17 @@ Exporter for devices running Fabric OS to use with https://prometheus.io/
         mkdir github.com
         cd github.com
         git clone git@github.ibm.com:genctl/fleetman-workspace.git
-        go build
+        go build 
         ```
-    * docker image
+    * Docker image
         ``` docker build -t fabric-os-exporter . ```
 * Running:
-    * run locally
+    * Run locally
         ```./fabric-os-exporter --ssh.targets=X.X.X.X,X.X.X.X --ssh.user=XXX --ssh.passwd=XXX```
 
-    * visit http://localhost:9879/metrics
+    * Run as docker image
+        ```docker run -d -p 9879:9879 --name fabric-os-exporter fabric-os-exporter --ssh.targets=X.X.X.X --ssh.user=XX --ssh.passwd=XXXX ```
+    * Visit http://localhost:9879/metrics
 
 ## Exported Metrics
 
