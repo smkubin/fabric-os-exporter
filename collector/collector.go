@@ -2,6 +2,7 @@ package collector
 
 import (
 	"fmt"
+	"regexp"
 	"sync"
 	"time"
 
@@ -94,11 +95,12 @@ func (c FabricOSCollector) Collect(ch chan<- prometheus.Metric) {
 func (c *FabricOSCollector) collectForHost(host string, ch chan<- prometheus.Metric, wg *sync.WaitGroup) {
 	defer wg.Done()
 	start := time.Now()
-	labelvalue := []string{host}
+	// labelvalue := []string{host}
 	success := 0
+	var hostname []string
 	defer func() {
-		ch <- prometheus.MustNewConstMetric(scrapeDurationDesc, prometheus.GaugeValue, time.Since(start).Seconds(), host)
-		ch <- prometheus.MustNewConstMetric(scrapeSuccessDesc, prometheus.GaugeValue, float64(success), host)
+		ch <- prometheus.MustNewConstMetric(scrapeDurationDesc, prometheus.GaugeValue, time.Since(start).Seconds(), hostname[1])
+		ch <- prometheus.MustNewConstMetric(scrapeSuccessDesc, prometheus.GaugeValue, float64(success), hostname[1])
 	}()
 	conn, err := c.connectionManager.Connect(host)
 	if err != nil {
@@ -106,9 +108,14 @@ func (c *FabricOSCollector) collectForHost(host string, ch chan<- prometheus.Met
 		return
 	}
 	success = 1
+
+	fabric_metrics, err := conn.RunCommand("fabricshow")
+	re := regexp.MustCompile(`"(.*?)"`)
+	hostname = re.FindStringSubmatch(fabric_metrics)
+
 	// fabricClient := connector.NewFabricClient(conn)
 	for name, col := range c.Collectors {
-		err = col.Collect(conn, ch, labelvalue)
+		err = col.Collect(conn, ch, []string{hostname[1]})
 		if err != nil && err.Error() != "EOF" {
 			log.Errorln(name + ": " + err.Error())
 		}
