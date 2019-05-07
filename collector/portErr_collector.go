@@ -66,7 +66,25 @@ func NewPortErrCollector() (Collector, error) {
 
 //Describe describes the metrics
 func (*portErrCollector) Describe(ch chan<- *prometheus.Desc) {
-
+	ch <- framesTxDesc
+	ch <- framesRxDesc
+	ch <- encInDesc
+	ch <- crcErrDesc
+	ch <- crcGEofDesc
+	ch <- tooShortDesc
+	ch <- tooLongDesc
+	ch <- badEofDesc
+	ch <- encOutDesc
+	ch <- discC3Desc
+	ch <- linkFailDesc
+	ch <- lossSyncDesc
+	ch <- lossSigDesc
+	ch <- frjtDesc
+	ch <- fbsyDesc
+	ch <- c3TimeoutTxDesc
+	ch <- c3TimeoutRxDesc
+	ch <- pcsErrDesc
+	ch <- uncorErrDesc
 }
 
 func (c *portErrCollector) Collect(client *connector.SSHConnection, ch chan<- prometheus.Metric, labelvalue []string) error {

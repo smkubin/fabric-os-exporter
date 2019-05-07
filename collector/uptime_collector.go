@@ -36,18 +36,22 @@ func NewUptimeCollector() (Collector, error) {
 //Describe describes the metrics
 func (*uptimeCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- uptimeDesc
+	ch <- loadLongtermDesc
+	ch <- loadMidtermDesc
+	ch <- loadShorttermDesc
+
 }
 
 func (c *uptimeCollector) Collect(client *connector.SSHConnection, ch chan<- prometheus.Metric, labelvalue []string) error {
 	log.Debugln("uptime collector is starting")
 
-	results, err := client.RunCommand("uptime")
+	results_uptime, err := client.RunCommand("uptime")
 	result_version, err := client.RunCommand("version")
 	if err != nil {
 		return err
 	}
 
-	var result []string = strings.Split(results, " ")
+	var result []string = strings.Split(results_uptime, " ")
 	uptime, err := convertToSeconds(result[3], strings.Trim(result[5], ","))
 	loadLongterm, err := strconv.ParseFloat(strings.Trim(result[10], ","), 64)
 	loadMidterm, err := strconv.ParseFloat(strings.Trim(result[11], ","), 64)
