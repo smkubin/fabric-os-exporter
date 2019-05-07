@@ -17,9 +17,6 @@ var (
 	fanDesc         *prometheus.Desc
 	temperature     float64
 	fanSpeed        float64
-	countTemper     = 0
-	countFan        = 0
-	countPower      = 0
 	statusValues    = map[string]int{
 		"Ok":                 1,
 		"Absent":             2,
@@ -60,6 +57,9 @@ func (c *sensorCollector) Collect(client *connector.SSHConnection, ch chan<- pro
 	if err != nil {
 		return err
 	}
+	countTemper := 0
+	countFan := 0
+	countPower := 0
 	metrics := regexp.MustCompile("\n").Split(results, -1)
 	re := regexp.MustCompile(`Temperature|Fan|Power Supply|Ok|\d+|Absent|Unknown|Predicting failure|Faulty`)
 	for _, line := range metrics {

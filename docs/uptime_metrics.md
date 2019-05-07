@@ -1,7 +1,7 @@
 ## uptime metrics
 | # | command | Metrics Name | Labels | Description |
 | -- | -- | --| --| --| 
-| 01 | uptime | fabricos_uptime | target | Displays how long the system has been running|
+| 01 | uptime | fabricos_uptime | target, version | Displays how long the system has been running|
 | 02 | uptime | fabricos_load_shortterm | target| The average system load over a period of the last 1 minutes. |
 | 03 | uptime| fabricos_load_midterm | target | The average system load over a period of the last 5 minutes. |
 | 04 | uptime | fabricos_load_longterm | target | The average system load over a period of the last 15 minutes. |

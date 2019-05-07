@@ -4,7 +4,7 @@
 * TBD
 
 ### Changes
-* TBD
+* Add label of version for uptime metric
 
 ## 0.1.0 / 2019-04-12
 * [CLEANUP] Introduced semantic versioning and changelog. From now on,

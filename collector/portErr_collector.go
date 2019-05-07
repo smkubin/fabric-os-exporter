@@ -35,7 +35,7 @@ var (
 
 func init() {
 	registerCollector("porterrshow", defaultEnabled, NewPortErrCollector)
-	labelPortErr := append(labelnames, "portNum")
+	labelPortErr := append(labelnames, "portNo")
 	framesTxDesc = prometheus.NewDesc(prefix_port+"frames_tx", "Number of frames transmitted (Tx).", labelPortErr, nil)
 	framesRxDesc = prometheus.NewDesc(prefix_port+"frames_rx", "Number of frames received (Rx).", labelPortErr, nil)
 	encInDesc = prometheus.NewDesc(prefix_port+"enc_in", "Number of encoding errors inside frames received (Rx).", labelPortErr, nil)
@@ -52,7 +52,7 @@ func init() {
 	frjtDesc = prometheus.NewDesc(prefix_port+"frjt", "Number of transmitted frames rejected with F_RJT (Tx).", labelPortErr, nil)
 	fbsyDesc = prometheus.NewDesc(prefix_port+"fbsy", "Number of transmitted frames busied with F_BSY (Tx).", labelPortErr, nil)
 	c3TimeoutTxDesc = prometheus.NewDesc(prefix_port+"c3_timeout_tx", "The number of transmit class 3 frames discarded at the transmission port due to timeout (platform- and port-specific).", labelPortErr, nil)
-	c3TimeoutRxDesc = prometheus.NewDesc(prefix+"c3_timeout_rx", "The number of receive class 3 frames received at this port and discarded at the transmission port due to timeout (platform- and port-specific).", labelPortErr, nil)
+	c3TimeoutRxDesc = prometheus.NewDesc(prefix_port+"c3_timeout_rx", "The number of receive class 3 frames received at this port and discarded at the transmission port due to timeout (platform- and port-specific).", labelPortErr, nil)
 	pcsErrDesc = prometheus.NewDesc(prefix_port+"pcs_err", "The number of Physical Coding Sublayer (PCS) block errors. This counter records encoding violations on 10 Gbps or 16 Gbps ports.", labelPortErr, nil)
 	uncorErrDesc = prometheus.NewDesc(prefix_port+"uncor_err", "The number of uncorrectable forward error corrections (FEC).", labelPortErr, nil)
 }
