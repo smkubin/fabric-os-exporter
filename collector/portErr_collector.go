@@ -143,6 +143,7 @@ func (c *portErrCollector) Collect(client *connector.SSHConnection, ch chan<- pr
 
 			if err != nil {
 				return err
+			} else {
 			}
 		}
 	}

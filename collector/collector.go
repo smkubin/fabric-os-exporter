@@ -23,12 +23,12 @@ var (
 	scrapeSuccessDesc  *prometheus.Desc
 	factories          = make(map[string]func() (Collector, error))
 	collectorState     = make(map[string]*bool)
-	labelnames         = []string{"target"}
+	labelnames         = []string{"resource"}
 )
 
 func init() {
-	scrapeDurationDesc = prometheus.NewDesc(prefix+"collector_duration_seconds", "Duration of a collector scrape for one target", labelnames, nil) // metric name, help information, Arrar of defined label names, defined labels
-	scrapeSuccessDesc = prometheus.NewDesc(prefix+"collector_success", "Scrape of target was sucessful", labelnames, nil)
+	scrapeDurationDesc = prometheus.NewDesc(prefix+"collector_duration_seconds", "Duration of a collector scrape for one resource", labelnames, nil) // metric name, help information, Arrar of defined label names, defined labels
+	scrapeSuccessDesc = prometheus.NewDesc(prefix+"collector_success", "Scrape of resource was sucessful", labelnames, nil)
 }
 
 // fabricosCollector implements the prometheus.Collector interface

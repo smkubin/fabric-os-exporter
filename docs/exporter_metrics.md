@@ -1,8 +1,8 @@
 ## exporter Metrics
 | #  | Metrics Name | Labels | Description |
 | -- |  -- | -- | -- | 
-| 01 | fabricos_collector_duration_seconds | target | Duration of a collector scrape for one target |
-| 02 | fabricos_collector_success | target | Scrape of target was sucessful |
+| 01 | fabricos_collector_duration_seconds | resource | Duration of a collector scrape for one resource |
+| 02 | fabricos_collector_success | resource | Scrape of resource was sucessful |
 | 03 | go_gc_duration_seconds | - | A summary of the GC invocation durations. |
 | 04 | go_goroutines | - | Number of goroutines that currently exist. |
 | 05 | go_info | - | Information about the Go environment.|
