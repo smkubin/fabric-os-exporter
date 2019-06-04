@@ -1,6 +1,6 @@
 ## porterrshow metrics
 | # | command | Metrics Name | Labels | Description |
-| -- | -- | --| --| --| 
+| -- | -- | --| --| --| error counters for ports
 | 01 | porterrshow | fabricos_porterr_frames_tx| resource,portNo | Number of frames transmitted (Tx).|
 | 02 | porterrshow |fabricos_porterr_frames_rx  | resource,portNo| Number of frames received (Rx). |
 | 03 | porterrshow| fabricos_porterr_enc_in | resource,portNo | Number of encoding errors inside frames received (Rx). |

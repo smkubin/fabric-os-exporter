@@ -5,14 +5,12 @@ Exporter for devices running Fabric OS to use with https://prometheus.io/
 
 | Flag | Description | Default Value |
 | --- | --- | --- |
+| config.file | Path to configuration file | fabricos.yaml |
 | --web.telemetry-path | Path under which to expose metrics | /metrics |
 | --web.listen-address | Address on which to expose metrics and web interface | :9879 |
 | --web.disable-exporter-metrics | Exclude metrics about the exporter itself (promhttp_*, process_*, go_*) | false |
 | --collector.name | Collector are enabled, the name means name of CLI Command | By default enabled collectors: . |
 | --no-collector.name | Collectors that are enabled by default can be disabled, the name means name of CLI Command | By default disabled collectors: . |
-| --ssh.targets | Hosts to scrape | - |
-| --ssh.user | Username to use when connecting to Fabric OS devices using ssh | - |
-| --ssh.passwd | Passwd to use when connecting to Fabric OS devices using ssh | - | 
 
 ## Building and running
 * Prerequisites:
@@ -34,11 +32,21 @@ Exporter for devices running Fabric OS to use with https://prometheus.io/
         ``` docker build -t fabric-os-exporter . ```
 * Running:
     * Run locally
-        ```./fabric-os-exporter --ssh.targets=X.X.X.X,X.X.X.X --ssh.user=XXX --ssh.passwd=XXX```
+        ```./fabric-os-exporter --config.file=/etc/fabricos/fabricos.yaml```
 
     * Run as docker image
-        ```docker run -d -p 9879:9879 --name fabric-os-exporter fabric-os-exporter --ssh.targets=X.X.X.X --ssh.user=XX --ssh.passwd=XXXX ```
+        ```docker run -it -d -p 9879:9879 -v /etc/fabricos/fabricos.yam:/etc/fabricos/fabricos.yaml --name fabric-os-exporter fabric-os-exporter --config.file=/etc/fabricos/fabricos.yaml```
     * Visit http://localhost:9879/metrics
+
+## Configuration
+
+The fabric-os-exporter  reads from [fabricos.yaml](fabricos.yaml) config file by default. Edit your config YAML file, Enter the IP address of the device, your username, and your password there. 
+```
+targets:
+  - ipAddress: IP address
+    userid: user
+    password: password
+```
 
 ## Exported Metrics
 
