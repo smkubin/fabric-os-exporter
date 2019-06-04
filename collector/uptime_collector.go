@@ -52,7 +52,7 @@ func (c *uptimeCollector) Collect(client *connector.SSHConnection, ch chan<- pro
 	}
 
 	var result []string = strings.Split(results_uptime, " ")
-	uptime, err := convertToSeconds(result[3], strings.Trim(result[5], ","))
+	uptime := convertToSeconds(result[3], strings.Trim(result[5], ","))
 	loadLongterm, err := strconv.ParseFloat(strings.Trim(result[10], ","), 64)
 	loadMidterm, err := strconv.ParseFloat(strings.Trim(result[11], ","), 64)
 	loadShortterm, err := strconv.ParseFloat(strings.Trim(result[12], ",\n"), 64)
@@ -66,13 +66,16 @@ func (c *uptimeCollector) Collect(client *connector.SSHConnection, ch chan<- pro
 	return err
 }
 
-func convertToSeconds(days string, hour_minute string) (float64, error) {
+func convertToSeconds(days string, hour_minute string) float64 {
 	day_time, err := strconv.ParseFloat(days, 64)
 
 	hour_and_minute := strings.Split(hour_minute, ":")
 	hours, err := strconv.ParseFloat(hour_and_minute[0], 64)
 	minutes, err := strconv.ParseFloat(hour_and_minute[1], 64)
 	var time float64 = day_time*24*60*60 + hours*60*60 + minutes*60
-
-	return time, err
+	if err != nil {
+		return 0
+	} else {
+		return time
+	}
 }
