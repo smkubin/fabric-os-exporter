@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/ds8k-exporter/utils"
 	"github.com/fabric-os-exporter/collector"
+	"github.com/fabric-os-exporter/connector"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/log"
@@ -22,7 +22,7 @@ var (
 	// sshUsername            = kingpin.Flag("ssh.user", "Username to use when connecting to Fabric OS devices using ssh").String()
 	// sshPasswd           = kingpin.Flag("ssh.passwd", "Passwd to use when connecting to Fabric OS devices using ssh").String()
 	// connManager            *connector.SSHConnectionManager
-	cfg *utils.Config
+	cfg *connector.Config
 )
 
 type handler struct {
@@ -42,7 +42,7 @@ func main() {
 	//Bail early if the config is bad.
 	log.Infoln("Loading config from", *configFile)
 	// var err error
-	c, err := utils.GetConfig(*configFile)
+	c, err := connector.GetConfig(*configFile)
 	if err != nil {
 		log.Fatalf("Error parsing config file: %s", err)
 	}
@@ -104,7 +104,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	handler.ServeHTTP(w, r)
 
 }
-func (h *handler) innerHandler(targets ...utils.Targets) (http.Handler, error) {
+func (h *handler) innerHandler(targets ...connector.Targets) (http.Handler, error) {
 
 	registry := prometheus.NewRegistry()
 	sc, err := collector.NewFabricOSCollector(targets) //new a Fabric OS Collector
@@ -149,7 +149,7 @@ func (h *handler) innerHandler(targets ...utils.Targets) (http.Handler, error) {
 // 	return nil, fmt.Errorf("The target '%s' os not defined in the configuration file", reqTarget)
 // }
 
-func targetsForRequest(r *http.Request) ([]utils.Targets, error) {
+func targetsForRequest(r *http.Request) ([]connector.Targets, error) {
 	reqTarget := r.URL.Query().Get("target")
 	// var targets []string
 	if reqTarget == "" {
@@ -159,7 +159,7 @@ func targetsForRequest(r *http.Request) ([]utils.Targets, error) {
 
 	for _, t := range cfg.Targets {
 		if t.IpAddress == reqTarget {
-			return []utils.Targets{t}, nil
+			return []connector.Targets{t}, nil
 		}
 	}
 
