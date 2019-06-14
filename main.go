@@ -3,10 +3,9 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
+	"github.com/ds8k-exporter/utils"
 	"github.com/fabric-os-exporter/collector"
-	"github.com/fabric-os-exporter/connector"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/log"
@@ -15,13 +14,15 @@ import (
 )
 
 var (
+	configFile             = kingpin.Flag("config.file", "Path to configuration file.").Default("fabricos.yaml").String()
 	metricsPath            = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").String()
 	listenAddress          = kingpin.Flag("web.listen-address", "Address on which to expose metrics and web interface.").Default(":9879").String()
 	disableExporterMetrics = kingpin.Flag("web.disable-exporter-metrics", "Exclude metrics about the exporter itself (promhttp_*, process_*, go_*).").Bool()
-	sshHosts               = kingpin.Flag("ssh.targets", "Hosts to scrape").String()
-	sshUsername            = kingpin.Flag("ssh.user", "Username to use when connecting to Fabric OS devices using ssh").String()
-	sshPasswd              = kingpin.Flag("ssh.passwd", "Passwd to use when connecting to Fabric OS devices using ssh").String()
-	connManager            *connector.SSHConnectionManager
+	// sshHosts               = kingpin.Flag("ssh.targets", "Hosts to scrape").String()
+	// sshUsername            = kingpin.Flag("ssh.user", "Username to use when connecting to Fabric OS devices using ssh").String()
+	// sshPasswd           = kingpin.Flag("ssh.passwd", "Passwd to use when connecting to Fabric OS devices using ssh").String()
+	// connManager            *connector.SSHConnectionManager
+	cfg *utils.Config
 )
 
 type handler struct {
@@ -38,15 +39,17 @@ func main() {
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
 
+	//Bail early if the config is bad.
+	log.Infoln("Loading config from", *configFile)
+	// var err error
+	c, err := utils.GetConfig(*configFile)
+	if err != nil {
+		log.Fatalf("Error parsing config file: %s", err)
+	}
+	cfg = c
+
 	log.Infoln("Starting fabric_os_exporter", version.Info())
 	log.Infoln("Build context", version.BuildContext())
-
-	var err error
-	connManager, err = connector.NewConnectionManager(*sshUsername, *sshPasswd)
-	if err != nil {
-		log.Fatalf("Couldn't initialize connection manager, %v", err)
-	}
-	defer connManager.Close()
 
 	// Launch http services
 	http.Handle(*metricsPath, newHandler(!*disableExporterMetrics))
@@ -101,10 +104,10 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	handler.ServeHTTP(w, r)
 
 }
-func (h *handler) innerHandler(targets ...string) (http.Handler, error) {
+func (h *handler) innerHandler(targets ...utils.Targets) (http.Handler, error) {
 
 	registry := prometheus.NewRegistry()
-	sc, err := collector.NewFabricOSCollector(targets, connManager) //new a Fabric OS Collector
+	sc, err := collector.NewFabricOSCollector(targets) //new a Fabric OS Collector
 	if err != nil {
 		log.Fatalf("Couldn't create collector: %s", err)
 	}
@@ -129,17 +132,34 @@ func (h *handler) innerHandler(targets ...string) (http.Handler, error) {
 	return handler, nil
 }
 
-func targetsForRequest(r *http.Request) ([]string, error) {
+// func targetsForRequest(r *http.Request) ([]string, error) {
+// 	reqTarget := r.URL.Query().Get("target")
+// 	var targets []string
+// 	if reqTarget == "" {
+// 		targets = strings.Split(*sshHosts, ",")
+// 		return targets, nil
+// 	}
+
+// 	for _, t := range targets {
+// 		if t == reqTarget {
+// 			return []string{t}, nil
+// 		}
+// 	}
+
+// 	return nil, fmt.Errorf("The target '%s' os not defined in the configuration file", reqTarget)
+// }
+
+func targetsForRequest(r *http.Request) ([]utils.Targets, error) {
 	reqTarget := r.URL.Query().Get("target")
-	var targets []string
+	// var targets []string
 	if reqTarget == "" {
-		targets = strings.Split(*sshHosts, ",")
-		return targets, nil
+		// targets = strings.Split(*sshHosts, ",")
+		return cfg.Targets, nil
 	}
 
-	for _, t := range targets {
-		if t == reqTarget {
-			return []string{t}, nil
+	for _, t := range cfg.Targets {
+		if t.IpAddress == reqTarget {
+			return []utils.Targets{t}, nil
 		}
 	}
 

@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ds8k-exporter/utils"
 	"github.com/fabric-os-exporter/connector"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
@@ -33,13 +34,15 @@ func init() {
 
 // fabricosCollector implements the prometheus.Collector interface
 type FabricOSCollector struct {
-	targets           []string
-	Collectors        map[string]Collector
-	connectionManager *connector.SSHConnectionManager
+	targets    []utils.Targets
+	Collectors map[string]Collector
+	// connectionManager *connector.SSHConnectionManager
 }
 
 //newFabricosCollector creates a new fabric os Collector.
-func NewFabricOSCollector(targets []string, connectionManager *connector.SSHConnectionManager) (*FabricOSCollector, error) {
+// func NewFabricOSCollector(targets []string, connectionManager *connector.SSHConnectionManager) (*FabricOSCollector, error) {
+func NewFabricOSCollector(targets []utils.Targets) (*FabricOSCollector, error) {
+
 	collectors := make(map[string]Collector)
 	for key, enabled := range collectorState {
 		if *enabled {
@@ -50,7 +53,7 @@ func NewFabricOSCollector(targets []string, connectionManager *connector.SSHConn
 			collectors[key] = collector
 		}
 	}
-	return &FabricOSCollector{targets, collectors, connectionManager}, nil
+	return &FabricOSCollector{targets, collectors}, nil
 }
 
 func registerCollector(collector string, isDefaultEnabled bool, factory func() (Collector, error)) {
@@ -92,19 +95,25 @@ func (c FabricOSCollector) Collect(ch chan<- prometheus.Metric) {
 
 }
 
-func (c *FabricOSCollector) collectForHost(host string, ch chan<- prometheus.Metric, wg *sync.WaitGroup) {
+func (c *FabricOSCollector) collectForHost(host utils.Targets, ch chan<- prometheus.Metric, wg *sync.WaitGroup) {
 	defer wg.Done()
 	start := time.Now()
-	// labelvalue := []string{host}
 	success := 0
 	var hostname []string
 	defer func() {
 		ch <- prometheus.MustNewConstMetric(scrapeDurationDesc, prometheus.GaugeValue, time.Since(start).Seconds(), hostname[1])
 		ch <- prometheus.MustNewConstMetric(scrapeSuccessDesc, prometheus.GaugeValue, float64(success), hostname[1])
 	}()
-	conn, err := c.connectionManager.Connect(host)
+
+	connManager, err := connector.NewConnectionManager(host.Userid, host.Password)
 	if err != nil {
-		log.Errorf("Could not connect to %s: %v", host, err)
+		log.Fatalf("Couldn't initialize connection manager, %v", err)
+	}
+	defer connManager.Close()
+
+	conn, err := connManager.Connect(host.IpAddress)
+	if err != nil {
+		log.Errorf("Could not connect to %s: %v", host.IpAddress, err)
 		return
 	}
 	success = 1

@@ -1,0 +1,4 @@
+targets:
+  - ipAddress: IP address
+    userid: user
+    password: password

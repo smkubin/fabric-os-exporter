@@ -1,7 +1,7 @@
 ## master / unreleased
 
 ### **Breaking changes**
-* TBD
+* [CHANGE] Change method of reading username and password from cli to config file.
 
 ### Changes
 * [FEATURE] Add label of version for uptime metric
