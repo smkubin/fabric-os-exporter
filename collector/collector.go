@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ds8k-exporter/utils"
 	"github.com/fabric-os-exporter/connector"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
@@ -34,14 +33,14 @@ func init() {
 
 // fabricosCollector implements the prometheus.Collector interface
 type FabricOSCollector struct {
-	targets    []utils.Targets
+	targets    []connector.Targets
 	Collectors map[string]Collector
 	// connectionManager *connector.SSHConnectionManager
 }
 
 //newFabricosCollector creates a new fabric os Collector.
 // func NewFabricOSCollector(targets []string, connectionManager *connector.SSHConnectionManager) (*FabricOSCollector, error) {
-func NewFabricOSCollector(targets []utils.Targets) (*FabricOSCollector, error) {
+func NewFabricOSCollector(targets []connector.Targets) (*FabricOSCollector, error) {
 
 	collectors := make(map[string]Collector)
 	for key, enabled := range collectorState {
@@ -95,7 +94,7 @@ func (c FabricOSCollector) Collect(ch chan<- prometheus.Metric) {
 
 }
 
-func (c *FabricOSCollector) collectForHost(host utils.Targets, ch chan<- prometheus.Metric, wg *sync.WaitGroup) {
+func (c *FabricOSCollector) collectForHost(host connector.Targets, ch chan<- prometheus.Metric, wg *sync.WaitGroup) {
 	defer wg.Done()
 	start := time.Now()
 	success := 0
@@ -138,6 +137,5 @@ type Collector interface {
 	Describe(ch chan<- *prometheus.Desc)
 
 	//Collect collects metrics from FabricOS
-	// Collect(client utils.SpectrumClient, ch chan<- prometheus.Metric, labelvalues []string) error
 	Collect(client *connector.SSHConnection, ch chan<- prometheus.Metric, labelvalue []string) error
 }
