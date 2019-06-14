@@ -54,5 +54,5 @@ targets:
 | --- | --- | --- | --- |
 | - | Metrics from the exporter itself. | Enabled | [List](docs/exporter_metrics.md) |
 | uptime | Displays length of time the system has been operational. | Enabled | [List](docs/uptime_metrics.md) |
-| porterrshow | Displays a port error summary. | Enabled | [List](docs/porterrshow_metrics.md) |
 | sensorshow | display the current temperature, fan, and power supply status and readings from sensors located on the switch. | Enabled | [List](docs/sensor_metrics.md)|
+| portstatsshow | Displays port hardware statistics. | Enabled | [List](docs/portstatsshow_metrics.md) |

@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 
@@ -9,7 +10,7 @@ import (
 	"github.com/prometheus/common/log"
 )
 
-const prefix_port = prefix + "porterr_"
+const prefix_port = prefix + "portstats_"
 
 var (
 	framesTxDesc    *prometheus.Desc
@@ -30,14 +31,16 @@ var (
 	c3TimeoutTxDesc *prometheus.Desc
 	c3TimeoutRxDesc *prometheus.Desc
 	pcsErrDesc      *prometheus.Desc
-	uncorErrDesc    *prometheus.Desc
+
+	uncorErrFECDesc *prometheus.Desc
+	corFECDesc      *prometheus.Desc
 )
 
 func init() {
-	registerCollector("porterrshow", defaultEnabled, NewPortErrCollector)
-	labelPortErr := append(labelnames, "portNo")
-	framesTxDesc = prometheus.NewDesc(prefix_port+"frames_tx", "Number of frames transmitted (Tx).", labelPortErr, nil)
-	framesRxDesc = prometheus.NewDesc(prefix_port+"frames_rx", "Number of frames received (Rx).", labelPortErr, nil)
+	registerCollector("portstatsshow", defaultEnabled, NewPortErrCollector)
+	labelPortErr := append(labelnames, "portIndex")
+	framesTxDesc = prometheus.NewDesc(prefix_port+"frames_tx", "Number of frames transmitted errors (Tx).", labelPortErr, nil)
+	framesRxDesc = prometheus.NewDesc(prefix_port+"frames_rx", "Number of frames received (Rx) errors.", labelPortErr, nil)
 	encInDesc = prometheus.NewDesc(prefix_port+"enc_in", "Number of encoding errors inside frames received (Rx).", labelPortErr, nil)
 	crcErrDesc = prometheus.NewDesc(prefix_port+"crc_err", "Number of frames with CRC errors received (Rx).", labelPortErr, nil)
 	crcGEofDesc = prometheus.NewDesc(prefix_port+"crc_g_eof", "Number of frames with CRC errors with good EOF received (Rx).", labelPortErr, nil)
@@ -54,7 +57,9 @@ func init() {
 	c3TimeoutTxDesc = prometheus.NewDesc(prefix_port+"c3_timeout_tx", "The number of transmit class 3 frames discarded at the transmission port due to timeout (platform- and port-specific).", labelPortErr, nil)
 	c3TimeoutRxDesc = prometheus.NewDesc(prefix_port+"c3_timeout_rx", "The number of receive class 3 frames received at this port and discarded at the transmission port due to timeout (platform- and port-specific).", labelPortErr, nil)
 	pcsErrDesc = prometheus.NewDesc(prefix_port+"pcs_err", "The number of Physical Coding Sublayer (PCS) block errors. This counter records encoding violations on 10 Gbps or 16 Gbps ports.", labelPortErr, nil)
-	uncorErrDesc = prometheus.NewDesc(prefix_port+"uncor_err", "The number of uncorrectable forward error corrections (FEC).", labelPortErr, nil)
+
+	uncorErrFECDesc = prometheus.NewDesc(prefix_port+"uncor_err_fec", "The number of uncorrectable forward error corrections (FEC).", labelPortErr, nil)
+	corFECDesc = prometheus.NewDesc(prefix_port+"cor_fec", "Count of blocks that were corrected by FEC", labelPortErr, nil)
 }
 
 // portErrCollector collects portErr metrics
@@ -84,22 +89,29 @@ func (*portErrCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c3TimeoutTxDesc
 	ch <- c3TimeoutRxDesc
 	ch <- pcsErrDesc
-	ch <- uncorErrDesc
+	ch <- uncorErrFECDesc
+	ch <- corFECDesc
 }
 
 func (c *portErrCollector) Collect(client *connector.SSHConnection, ch chan<- prometheus.Metric, labelvalue []string) error {
 
-	log.Debugln("portErr collector is starting")
-	porterr_metrics, err := client.RunCommand("porterrshow")
+	log.Debugln("portStats collector is starting")
+	porterrInfo, err := client.RunCommand("porterrshow")
 	if err != nil {
 		return err
 	}
 
-	var metrics []string = regexp.MustCompile("\n").Split(porterr_metrics, -1)
+	var metrics []string = regexp.MustCompile("\n").Split(porterrInfo, -1)
 	re := regexp.MustCompile(`\d+`)
+	var firstPortIndex, lastPortIndex string
 	for i, line := range metrics {
 		if i > 1 && len(line) > 0 {
 			metric := re.FindAllString(line, -1)
+			if i == 2 {
+				firstPortIndex = metric[0]
+			} else if i == len(metrics)-2 {
+				lastPortIndex = metric[0]
+			}
 			labelvalues := append(labelvalue, metric[0])
 			frames_tx, err := strconv.ParseFloat(metric[1], 64)
 			frames_rx, err := strconv.ParseFloat(metric[2], 64)
@@ -139,13 +151,28 @@ func (c *portErrCollector) Collect(client *connector.SSHConnection, ch chan<- pr
 			ch <- prometheus.MustNewConstMetric(c3TimeoutTxDesc, prometheus.GaugeValue, c3_timeout_tx, labelvalues...)
 			ch <- prometheus.MustNewConstMetric(c3TimeoutRxDesc, prometheus.GaugeValue, c3_timeout_rx, labelvalues...)
 			ch <- prometheus.MustNewConstMetric(pcsErrDesc, prometheus.GaugeValue, pcs_err, labelvalues...)
-			ch <- prometheus.MustNewConstMetric(uncorErrDesc, prometheus.GaugeValue, uncor_err, labelvalues...)
+			ch <- prometheus.MustNewConstMetric(uncorErrFECDesc, prometheus.GaugeValue, uncor_err, labelvalues...)
 
 			if err != nil {
 				return err
-			} else {
 			}
 		}
 	}
+	portStatsInfo, err := client.RunCommand("portstatsshow -i " + firstPortIndex + "-" + lastPortIndex)
+	if err != nil {
+		return err
+	}
+	fmt.Println(lastPortIndex)
+	var portStats []string = regexp.MustCompile(`\n\n`).Split(portStatsInfo, -1)
+
+	for _, portStat := range portStats {
+		if len(portStat) > 0 {
+			portIndex := regexp.MustCompile(`\d+`).FindString(regexp.MustCompile(`port:\s+\d+`).FindString(portStat))
+			labelvalues := append(labelvalue, portIndex)
+			fecCorDetectedValue, _ := strconv.ParseFloat(regexp.MustCompile(`\d+`).FindString(regexp.MustCompile(`fec_cor_detected\s+\d+`).FindString(portStat)), 64)
+			ch <- prometheus.MustNewConstMetric(corFECDesc, prometheus.GaugeValue, fecCorDetectedValue, labelvalues...)
+		}
+	}
+
 	return nil
 }

@@ -42,7 +42,7 @@ func (c *SSHConnection) RunCommand(cmd string) (string, error) {
 	if err != nil {
 		return "", errors.Wrap(err, "could not run command ")
 	}
-	log.Debugf("Output for %s:%s\n", c.host, string(b.Bytes()))
+	// log.Debugf("Output for %s:%s\n", c.host, string(b.Bytes()))
 	return string(b.Bytes()), nil
 }
 

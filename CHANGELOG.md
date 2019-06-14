@@ -2,7 +2,7 @@
 
 ### **Breaking changes**
 * [CHANGE] Change method of reading username and password from cli to config file.
-
+* [FEATURE] Add metric of FEC corrected for fabric-os-exporter
 ### Changes
 * [FEATURE] Add label of version for uptime metric
 * [CHANGE] Change the label 'target' from ip into hostname
