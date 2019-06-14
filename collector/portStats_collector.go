@@ -1,7 +1,7 @@
 package collector
 
 import (
-	"fmt"
+//	"fmt"
 	"regexp"
 	"strconv"
 
@@ -162,7 +162,7 @@ func (c *portErrCollector) Collect(client *connector.SSHConnection, ch chan<- pr
 	if err != nil {
 		return err
 	}
-	fmt.Println(lastPortIndex)
+//	fmt.Println(lastPortIndex)
 	var portStats []string = regexp.MustCompile(`\n\n`).Split(portStatsInfo, -1)
 
 	for _, portStat := range portStats {
