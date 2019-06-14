@@ -7,6 +7,8 @@
 * [FEATURE] Add label of version for uptime metric
 * [CHANGE] Change the label 'target' from ip into hostname
 * [CHANGE] Change the label name from 'target' into 'resource'
+* [CHANGE] Fix import statement
+* [CHANGE] Fix Dockerfile
 
 ## 0.1.0 / 2019-04-12
 * [CLEANUP] Introduced semantic versioning and changelog. From now on,
