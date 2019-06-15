@@ -1,4 +1,4 @@
-## master / unreleased
+## 0.2.0 / 2019-06-15
 
 ### **Breaking changes**
 * [CHANGE] Change method of reading username and password from cli to config file.
