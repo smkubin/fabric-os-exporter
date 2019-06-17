@@ -1,3 +1,7 @@
+
+### Changes 
+* [CHANGE] Delete unnecesary metrics
+
 ## 0.2.0 / 2019-06-15
 
 ### **Breaking changes**
