@@ -53,16 +53,22 @@ func (c *uptimeCollector) Collect(client *connector.SSHConnection, ch chan<- pro
 
 	var result []string = strings.Split(results_uptime, " ")
 	uptime := convertToSeconds(result[3], strings.Trim(result[5], ","))
-	loadLongterm, err := strconv.ParseFloat(strings.Trim(result[10], ","), 64)
-	loadMidterm, err := strconv.ParseFloat(strings.Trim(result[11], ","), 64)
-	loadShortterm, err := strconv.ParseFloat(strings.Trim(result[12], ",\n"), 64)
 	re := regexp.MustCompile(`v\d+(\.\d+)*(\w)*`)
 	metric := re.FindString(result_version)
 	label_value_uptime := append(labelvalue, metric)
 	ch <- prometheus.MustNewConstMetric(uptimeDesc, prometheus.GaugeValue, uptime, label_value_uptime...)
-	ch <- prometheus.MustNewConstMetric(loadLongtermDesc, prometheus.GaugeValue, loadLongterm, labelvalue...)
-	ch <- prometheus.MustNewConstMetric(loadMidtermDesc, prometheus.GaugeValue, loadMidterm, labelvalue...)
-	ch <- prometheus.MustNewConstMetric(loadShorttermDesc, prometheus.GaugeValue, loadShortterm, labelvalue...)
+
+	if *enableFullMetrics == true {
+		loadLongterm, err := strconv.ParseFloat(strings.Trim(result[10], ","), 64)
+		loadMidterm, err := strconv.ParseFloat(strings.Trim(result[11], ","), 64)
+		loadShortterm, err := strconv.ParseFloat(strings.Trim(result[12], ",\n"), 64)
+		ch <- prometheus.MustNewConstMetric(loadLongtermDesc, prometheus.GaugeValue, loadLongterm, labelvalue...)
+		ch <- prometheus.MustNewConstMetric(loadMidtermDesc, prometheus.GaugeValue, loadMidterm, labelvalue...)
+		ch <- prometheus.MustNewConstMetric(loadShorttermDesc, prometheus.GaugeValue, loadShortterm, labelvalue...)
+		if err != nil {
+			return err
+		}
+	}
 	return err
 }
 

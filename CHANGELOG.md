@@ -1,3 +1,4 @@
+* [CHANGE] Add enable-full-metrics flag to enable advanced metrics
 ## 0.2.0 / 2019-06-15
 
 ### **Breaking changes**
