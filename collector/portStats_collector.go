@@ -1,7 +1,6 @@
 package collector
 
 import (
-	//	"fmt"
 	"regexp"
 	"strconv"
 
@@ -39,7 +38,6 @@ var (
 func init() {
 	registerCollector("portstatsshow", defaultEnabled, NewPortErrCollector)
 	labelPortErr := append(labelnames, "portIndex")
-
 	crcErrDesc = prometheus.NewDesc(prefix_port+"crc_err", "Number of frames with CRC errors received (Rx).", labelPortErr, nil)
 	crcGEofDesc = prometheus.NewDesc(prefix_port+"crc_g_eof", "Number of frames with CRC errors with good EOF received (Rx).", labelPortErr, nil)
 	encOutDesc = prometheus.NewDesc(prefix_port+"enc_out", "Number of encoding error outside of frames received (Rx).", labelPortErr, nil)
@@ -61,6 +59,7 @@ func init() {
 	fbsyDesc = prometheus.NewDesc(prefix_port+"fbsy", "Number of transmitted frames busied with F_BSY (Tx).", labelPortErr, nil)
 	c3TimeoutTxDesc = prometheus.NewDesc(prefix_port+"c3_timeout_tx", "The number of transmit class 3 frames discarded at the transmission port due to timeout (platform- and port-specific).", labelPortErr, nil)
 	c3TimeoutRxDesc = prometheus.NewDesc(prefix_port+"c3_timeout_rx", "The number of receive class 3 frames received at this port and discarded at the transmission port due to timeout (platform- and port-specific).", labelPortErr, nil)
+
 }
 
 // portErrCollector collects portErr metrics
@@ -115,7 +114,6 @@ func (c *portErrCollector) Collect(client *connector.SSHConnection, ch chan<- pr
 				lastPortIndex = metric[0]
 			}
 			labelvalues := append(labelvalue, metric[0])
-
 			crc_err, err := strconv.ParseFloat(metric[4], 64)
 			crc_g_eof, err := strconv.ParseFloat(metric[5], 64)
 			enc_out, err := strconv.ParseFloat(metric[9], 64)
@@ -124,6 +122,7 @@ func (c *portErrCollector) Collect(client *connector.SSHConnection, ch chan<- pr
 			ch <- prometheus.MustNewConstMetric(crcErrDesc, prometheus.GaugeValue, crc_err, labelvalues...)
 			ch <- prometheus.MustNewConstMetric(crcGEofDesc, prometheus.GaugeValue, crc_g_eof, labelvalues...)
 			ch <- prometheus.MustNewConstMetric(encOutDesc, prometheus.GaugeValue, enc_out, labelvalues...)
+
 			ch <- prometheus.MustNewConstMetric(pcsErrDesc, prometheus.GaugeValue, pcs_err, labelvalues...)
 			ch <- prometheus.MustNewConstMetric(uncorErrFECDesc, prometheus.GaugeValue, uncor_err, labelvalues...)
 

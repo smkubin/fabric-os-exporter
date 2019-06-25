@@ -18,11 +18,7 @@ var (
 	metricsPath            = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").String()
 	listenAddress          = kingpin.Flag("web.listen-address", "Address on which to expose metrics and web interface.").Default(":9879").String()
 	disableExporterMetrics = kingpin.Flag("web.disable-exporter-metrics", "Exclude metrics about the exporter itself (promhttp_*, process_*, go_*).").Bool()
-	// sshHosts               = kingpin.Flag("ssh.targets", "Hosts to scrape").String()
-	// sshUsername            = kingpin.Flag("ssh.user", "Username to use when connecting to Fabric OS devices using ssh").String()
-	// sshPasswd           = kingpin.Flag("ssh.passwd", "Passwd to use when connecting to Fabric OS devices using ssh").String()
-	// connManager            *connector.SSHConnectionManager
-	cfg *connector.Config
+	cfg                    *connector.Config
 )
 
 type handler struct {
@@ -131,23 +127,6 @@ func (h *handler) innerHandler(targets ...connector.Targets) (http.Handler, erro
 	}
 	return handler, nil
 }
-
-// func targetsForRequest(r *http.Request) ([]string, error) {
-// 	reqTarget := r.URL.Query().Get("target")
-// 	var targets []string
-// 	if reqTarget == "" {
-// 		targets = strings.Split(*sshHosts, ",")
-// 		return targets, nil
-// 	}
-
-// 	for _, t := range targets {
-// 		if t == reqTarget {
-// 			return []string{t}, nil
-// 		}
-// 	}
-
-// 	return nil, fmt.Errorf("The target '%s' os not defined in the configuration file", reqTarget)
-// }
 
 func targetsForRequest(r *http.Request) ([]connector.Targets, error) {
 	reqTarget := r.URL.Query().Get("target")

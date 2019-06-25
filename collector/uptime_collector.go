@@ -69,6 +69,7 @@ func (c *uptimeCollector) Collect(client *connector.SSHConnection, ch chan<- pro
 			return err
 		}
 	}
+
 	return err
 }
 
