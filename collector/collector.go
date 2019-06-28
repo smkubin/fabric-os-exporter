@@ -23,7 +23,7 @@ var (
 	scrapeSuccessDesc  *prometheus.Desc
 	factories          = make(map[string]func() (Collector, error))
 	collectorState     = make(map[string]*bool)
-	labelnames         = []string{"resource"}
+	labelnames         = []string{"target", "resource"}
 	enableFullMetrics  = kingpin.Flag("enable-full-metrics", "Enable full of metrics").Default("false").Bool()
 )
 
@@ -101,8 +101,8 @@ func (c *FabricOSCollector) collectForHost(host connector.Targets, ch chan<- pro
 	success := 0
 	var hostname []string
 	defer func() {
-		ch <- prometheus.MustNewConstMetric(scrapeDurationDesc, prometheus.GaugeValue, time.Since(start).Seconds(), hostname[1])
-		ch <- prometheus.MustNewConstMetric(scrapeSuccessDesc, prometheus.GaugeValue, float64(success), hostname[1])
+		ch <- prometheus.MustNewConstMetric(scrapeDurationDesc, prometheus.GaugeValue, time.Since(start).Seconds(), host.IpAddress, hostname[1])
+		ch <- prometheus.MustNewConstMetric(scrapeSuccessDesc, prometheus.GaugeValue, float64(success), host.IpAddress, hostname[1])
 	}()
 
 	connManager, err := connector.NewConnectionManager(host.Userid, host.Password)
@@ -124,7 +124,7 @@ func (c *FabricOSCollector) collectForHost(host connector.Targets, ch chan<- pro
 
 	// fabricClient := connector.NewFabricClient(conn)
 	for name, col := range c.Collectors {
-		err = col.Collect(conn, ch, []string{hostname[1]})
+		err = col.Collect(conn, ch, []string{host.IpAddress, hostname[1]})
 		if err != nil && err.Error() != "EOF" {
 			log.Errorln(name + ": " + err.Error())
 		}
