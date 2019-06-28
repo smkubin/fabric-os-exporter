@@ -1,4 +1,5 @@
 ### Changes 
+* [FEATURE] Add 'target' label, its value is ipaddress
 * [CHANGE] Add enable-full-metrics flag to enable advanced metrics
 
 ## 0.2.0 / 2019-06-15
