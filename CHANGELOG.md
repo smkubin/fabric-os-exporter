@@ -1,9 +1,9 @@
-### Changes 
+## 0.3.0 / 2019-06-28
+### Changes
 * [FEATURE] Add 'target' label, its value is ipaddress
 * [CHANGE] Add enable-full-metrics flag to enable advanced metrics
 
 ## 0.2.0 / 2019-06-15
-
 ### **Breaking changes**
 * [CHANGE] Change method of reading username and password from cli to config file.
 * [FEATURE] Add metric of FEC corrected for fabric-os-exporter
