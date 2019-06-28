@@ -24,6 +24,7 @@ var (
 	factories          = make(map[string]func() (Collector, error))
 	collectorState     = make(map[string]*bool)
 	labelnames         = []string{"resource"}
+	enableFullMetrics  = kingpin.Flag("enable-full-metrics", "Enable full of metrics").Default("false").Bool()
 )
 
 func init() {

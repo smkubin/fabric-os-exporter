@@ -11,19 +11,19 @@ import (
 )
 
 var (
-	uptimeDesc *prometheus.Desc
-	// loadLongtermDesc  *prometheus.Desc
-	// loadMidtermDesc   *prometheus.Desc
-	// loadShorttermDesc *prometheus.Desc
+	uptimeDesc        *prometheus.Desc
+	loadLongtermDesc  *prometheus.Desc
+	loadMidtermDesc   *prometheus.Desc
+	loadShorttermDesc *prometheus.Desc
 )
 
 func init() {
 	registerCollector("uptime", defaultEnabled, NewUptimeCollector)
 	label_name_uptime := append(labelnames, "version")
 	uptimeDesc = prometheus.NewDesc(prefix+"uptime", "Displays how long the system has been running", label_name_uptime, nil)
-	// loadLongtermDesc = prometheus.NewDesc(prefix+"load_longterm", "The average system load over a period of the last 15 minutes.", labelnames, nil)
-	// loadMidtermDesc = prometheus.NewDesc(prefix+"load_midterm", "The average system load over a period of the last 5 minutes.", labelnames, nil)
-	// loadShorttermDesc = prometheus.NewDesc(prefix+"load_shortterm", "The average system load over a period of the last 1 minutes.", labelnames, nil)
+	loadLongtermDesc = prometheus.NewDesc(prefix+"load_longterm", "The average system load over a period of the last 15 minutes.", labelnames, nil)
+	loadMidtermDesc = prometheus.NewDesc(prefix+"load_midterm", "The average system load over a period of the last 5 minutes.", labelnames, nil)
+	loadShorttermDesc = prometheus.NewDesc(prefix+"load_shortterm", "The average system load over a period of the last 1 minutes.", labelnames, nil)
 }
 
 // uptimeCollector collects uptime metrics
@@ -36,9 +36,9 @@ func NewUptimeCollector() (Collector, error) {
 //Describe describes the metrics
 func (*uptimeCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- uptimeDesc
-	// ch <- loadLongtermDesc
-	// ch <- loadMidtermDesc
-	// ch <- loadShorttermDesc
+	ch <- loadLongtermDesc
+	ch <- loadMidtermDesc
+	ch <- loadShorttermDesc
 
 }
 
@@ -53,16 +53,23 @@ func (c *uptimeCollector) Collect(client *connector.SSHConnection, ch chan<- pro
 
 	var result []string = strings.Split(results_uptime, " ")
 	uptime := convertToSeconds(result[3], strings.Trim(result[5], ","))
-	// loadLongterm, err := strconv.ParseFloat(strings.Trim(result[10], ","), 64)
-	// loadMidterm, err := strconv.ParseFloat(strings.Trim(result[11], ","), 64)
-	// loadShortterm, err := strconv.ParseFloat(strings.Trim(result[12], ",\n"), 64)
 	re := regexp.MustCompile(`v\d+(\.\d+)*(\w)*`)
 	metric := re.FindString(result_version)
 	label_value_uptime := append(labelvalue, metric)
 	ch <- prometheus.MustNewConstMetric(uptimeDesc, prometheus.GaugeValue, uptime, label_value_uptime...)
-	// ch <- prometheus.MustNewConstMetric(loadLongtermDesc, prometheus.GaugeValue, loadLongterm, labelvalue...)
-	// ch <- prometheus.MustNewConstMetric(loadMidtermDesc, prometheus.GaugeValue, loadMidterm, labelvalue...)
-	// ch <- prometheus.MustNewConstMetric(loadShorttermDesc, prometheus.GaugeValue, loadShortterm, labelvalue...)
+
+	if *enableFullMetrics == true {
+		loadLongterm, err := strconv.ParseFloat(strings.Trim(result[10], ","), 64)
+		loadMidterm, err := strconv.ParseFloat(strings.Trim(result[11], ","), 64)
+		loadShortterm, err := strconv.ParseFloat(strings.Trim(result[12], ",\n"), 64)
+		ch <- prometheus.MustNewConstMetric(loadLongtermDesc, prometheus.GaugeValue, loadLongterm, labelvalue...)
+		ch <- prometheus.MustNewConstMetric(loadMidtermDesc, prometheus.GaugeValue, loadMidterm, labelvalue...)
+		ch <- prometheus.MustNewConstMetric(loadShorttermDesc, prometheus.GaugeValue, loadShortterm, labelvalue...)
+		if err != nil {
+			return err
+		}
+	}
+
 	return err
 }
 

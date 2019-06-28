@@ -5,12 +5,14 @@ Exporter for devices running Fabric OS to use with https://prometheus.io/
 
 | Flag | Description | Default Value |
 | --- | --- | --- |
-| config.file | Path to configuration file | fabricos.yaml |
+| --config.file | Path to configuration file | fabricos.yaml |
 | --web.telemetry-path | Path under which to expose metrics | /metrics |
 | --web.listen-address | Address on which to expose metrics and web interface | :9879 |
 | --web.disable-exporter-metrics | Exclude metrics about the exporter itself (promhttp_*, process_*, go_*) | false |
-| --collector.name | Collector are enabled, the name means name of CLI Command | By default enabled collectors: . |
+| --collector.name | Collector are enabled, the name means name of CLI Command | By default enabled collectors: uptime,sensorshow,portstatsshow. |
 | --no-collector.name | Collectors that are enabled by default can be disabled, the name means name of CLI Command | By default disabled collectors: . |
+| --enable-full-metrics | Enable full of metrics | false |
+
 
 ## Building and running
 * Prerequisites:
