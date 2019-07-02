@@ -1,4 +1,5 @@
 ### Changes 
+* [FIX] Fix the error that temperature and fan_speed have wrong label
 * [FEATURE] Add 'target' label, its value is ipaddress
 * [CHANGE] Add enable-full-metrics flag to enable advanced metrics
 

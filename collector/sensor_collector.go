@@ -28,10 +28,13 @@ var (
 
 func init() {
 	registerCollector("sensorshow", defaultEnabled, NewSensorCollector)
-	labelState := append(labelnames, "status")
-	labelTemper := append(labelState, "sensorID")
-	labelFan := append(labelState, "fanID")
-	labelPower := append(labelState, "powerID")
+	// labelState := append(labelnames, "status")
+	// labelTemper := append(labelState, "sensorID")
+	// labelFan := append(labelState, "fanID")
+	// labelPower := append(labelState, "powerID")
+	labelTemper := append(labelnames, "status", "sensorID")
+	labelPower := append(labelnames, "status", "powerID")
+	labelFan := append(labelnames, "status", "fanID")
 	temperatureDesc = prometheus.NewDesc(prefix_sensor+"temperature_centigrade", "Displays the current temperature, the unit is Centigrade", labelTemper, nil)
 	powerSupplyDesc = prometheus.NewDesc(prefix_sensor+"power_supplies", "Status of power supplies.", labelPower, nil)
 	fanDesc = prometheus.NewDesc(prefix_sensor+"fan_speed", "Speed of fan, the unit is RPM.", labelFan, nil)
