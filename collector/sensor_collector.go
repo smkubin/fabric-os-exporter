@@ -28,10 +28,6 @@ var (
 
 func init() {
 	registerCollector("sensorshow", defaultEnabled, NewSensorCollector)
-	// labelState := append(labelnames, "status")
-	// labelTemper := append(labelState, "sensorID")
-	// labelFan := append(labelState, "fanID")
-	// labelPower := append(labelState, "powerID")
 	labelTemper := append(labelnames, "status", "sensorID")
 	labelPower := append(labelnames, "status", "powerID")
 	labelFan := append(labelnames, "status", "fanID")
