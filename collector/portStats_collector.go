@@ -98,16 +98,18 @@ func (c *portErrCollector) Collect(client *connector.SSHConnection, ch chan<- pr
 
 	log.Debugln("portStats collector is starting")
 	porterrInfo, err := client.RunCommand("porterrshow")
+	log.Debugln("porterr_Info: ", porterrInfo)
 	if err != nil {
 		return err
 	}
-
 	var metrics []string = regexp.MustCompile("\n").Split(porterrInfo, -1)
+	log.Debugln("porterrMetrics: ", metrics)
 	re := regexp.MustCompile(`\d+`)
 	var firstPortIndex, lastPortIndex string
 	for i, line := range metrics {
 		if i > 1 && len(line) > 0 {
 			metric := re.FindAllString(line, -1)
+			log.Debugln("porterrMetric: ", metric)
 			if i == 2 {
 				firstPortIndex = metric[0]
 			} else if i == len(metrics)-2 {
@@ -162,15 +164,18 @@ func (c *portErrCollector) Collect(client *connector.SSHConnection, ch chan<- pr
 			if err != nil {
 				return err
 			}
+		} else {
+			log.Infoln("porterrMetrics: ", metrics)
 		}
 	}
 	portStatsInfo, err := client.RunCommand("portstatsshow -i " + firstPortIndex + "-" + lastPortIndex)
 	if err != nil {
+		log.Infoln("portStats_Info: ", portStatsInfo)
 		return err
 	}
 	//	fmt.Println(lastPortIndex)
 	var portStats []string = regexp.MustCompile(`\n\n`).Split(portStatsInfo, -1)
-
+	log.Debugln("portStatsMetrics: ", portStats)
 	for _, portStat := range portStats {
 		if len(portStat) > 0 {
 			portIndex := regexp.MustCompile(`\d+`).FindString(regexp.MustCompile(`port:\s+\d+`).FindString(portStat))
@@ -179,6 +184,6 @@ func (c *portErrCollector) Collect(client *connector.SSHConnection, ch chan<- pr
 			ch <- prometheus.MustNewConstMetric(corFECDesc, prometheus.GaugeValue, fecCorDetectedValue, labelvalues...)
 		}
 	}
-
+	log.Debugln("The end of portStats collector")
 	return nil
 }

@@ -1,5 +1,6 @@
 
 ### Changes 
+* [FEATURE] Add more debug information
 * [FIX] Fix the error that temperature and fan_speed have wrong label
 
 ## 0.3.0 / 2019-06-28

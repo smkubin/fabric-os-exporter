@@ -121,7 +121,7 @@ func (c *FabricOSCollector) collectForHost(host connector.Targets, ch chan<- pro
 	fabric_metrics, err := conn.RunCommand("fabricshow")
 	re := regexp.MustCompile(`"(.*?)"`)
 	hostname = re.FindStringSubmatch(fabric_metrics)
-
+	log.Debugln("hostname: ", hostname[1])
 	// fabricClient := connector.NewFabricClient(conn)
 	for name, col := range c.Collectors {
 		err = col.Collect(conn, ch, []string{host.IpAddress, hostname[1]})
