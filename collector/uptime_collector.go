@@ -39,7 +39,6 @@ func (*uptimeCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- loadLongtermDesc
 	ch <- loadMidtermDesc
 	ch <- loadShorttermDesc
-
 }
 
 func (c *uptimeCollector) Collect(client *connector.SSHConnection, ch chan<- prometheus.Metric, labelvalue []string) error {
@@ -52,35 +51,41 @@ func (c *uptimeCollector) Collect(client *connector.SSHConnection, ch chan<- pro
 	if err != nil {
 		return err
 	}
-
+	var uptime float64
 	var result []string = strings.Split(results_uptime, " ")
 	log.Debugln("uptimeSplitResult", result)
 	log.Debugln("len_reuslt", len(result))
-	if len(result) == 13 {
-		uptime := convertToSeconds(result[3], strings.Trim(result[5], ","))
-		log.Debugln("uptime: ", uptime)
-		re := regexp.MustCompile(`v\d+(\.\d+)*(\w)*`)
-		version := re.FindString(result_version)
-		log.Debugln("version: ", version)
-		label_value_uptime := append(labelvalue, version)
-		ch <- prometheus.MustNewConstMetric(uptimeDesc, prometheus.GaugeValue, uptime, label_value_uptime...)
-		if *enableFullMetrics == true {
-			loadLongterm, err := strconv.ParseFloat(strings.Trim(result[10], ","), 64)
-			loadMidterm, err := strconv.ParseFloat(strings.Trim(result[11], ","), 64)
-			loadShortterm, err := strconv.ParseFloat(strings.Trim(result[12], ",\n"), 64)
-			ch <- prometheus.MustNewConstMetric(loadLongtermDesc, prometheus.GaugeValue, loadLongterm, labelvalue...)
-			ch <- prometheus.MustNewConstMetric(loadMidtermDesc, prometheus.GaugeValue, loadMidterm, labelvalue...)
-			ch <- prometheus.MustNewConstMetric(loadShorttermDesc, prometheus.GaugeValue, loadShortterm, labelvalue...)
-			if err != nil {
-				return err
-			}
-		}
-	} else {
+	switch len(result) {
+	case 13:
+		uptime = convertToSeconds(result[3], strings.Trim(result[5], ","))
+	case 14:
+		uptime = convertToSeconds(result[3], "0:"+result[5])
+	case 12:
+		uptime = convertToSeconds("0", "0:"+result[3])
+	default:
 		log.Errorln("uptime_info is nil or has format error from SAN Switch.")
 		log.Infoln("uptime_info: ", results_uptime)
 		log.Infoln("version_info", result_version)
 		log.Infoln("uptimeSplitResult", result)
-		log.Infoln("len_reuslt", len(result))
+		log.Infoln("len_result", len(result))
+	}
+
+	log.Debugln("uptime: ", uptime)
+	re := regexp.MustCompile(`v\d+(\.\d+)*(\w)*`)
+	version := re.FindString(result_version)
+	log.Debugln("version: ", version)
+	label_value_uptime := append(labelvalue, version)
+	ch <- prometheus.MustNewConstMetric(uptimeDesc, prometheus.GaugeValue, uptime, label_value_uptime...)
+	if *enableFullMetrics == true {
+		loadLongterm, err := strconv.ParseFloat(strings.Trim(result[len(result)-3], ","), 64)
+		loadMidterm, err := strconv.ParseFloat(strings.Trim(result[len(result)-2], ","), 64)
+		loadShortterm, err := strconv.ParseFloat(strings.Trim(result[len(result)-1], ",\n"), 64)
+		ch <- prometheus.MustNewConstMetric(loadLongtermDesc, prometheus.GaugeValue, loadLongterm, labelvalue...)
+		ch <- prometheus.MustNewConstMetric(loadMidtermDesc, prometheus.GaugeValue, loadMidterm, labelvalue...)
+		ch <- prometheus.MustNewConstMetric(loadShorttermDesc, prometheus.GaugeValue, loadShortterm, labelvalue...)
+		if err != nil {
+			return err
+		}
 	}
 
 	log.Debugln("The end of uptime collector ")
@@ -104,7 +109,6 @@ func convertToSeconds(days string, hour_minute string) float64 {
 		log.Errorln("uptime_info is nil or has format error from SAN Switch.")
 		log.Infoln("uptime_day: ", day_time)
 		log.Infoln("hourAndMinute: ", hour_and_minute)
-
 	}
 	if err != nil {
 		log.Errorln(err)
