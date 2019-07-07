@@ -42,100 +42,133 @@ func (*uptimeCollector) Describe(ch chan<- *prometheus.Desc) {
 }
 
 func (c *uptimeCollector) Collect(client *connector.SSHConnection, ch chan<- prometheus.Metric, labelvalue []string) error {
-	log.Debugln("uptime collector is starting")
+	log.Debugln("Entering uptime collector ...")
 
-	uptime_cmd_result, err := client.RunCommand("uptime")
+	uptimeResp, err := client.RunCommand("uptime")
 	if err != nil {
 		log.Errorf("Executing uptime command failed: %s", err)
 		return err
 	}
-	log.Debugln("result of uptime cmd: ", uptime_cmd_result)
-	// Examples of the returned uptime string:
-	//   20:46:50 up 216 days, 27 min, 0 users, load average: 0.59, 0.30, 0.19\n
-	//   0:53:13 up 204 days, 3:34, 1 user, load average: 0.58, 0.67, 0.68\n
+	log.Debugln("Response of uptime cmd: ", uptimeResp)
+	// Examples of the returned uptime response string:
+	// 15:39:20 up 5:23, 1 users, load averages: 2.75, 2.60, 2.73
+	// 17:46 up 5 min, 1 users, load averages: 9.30, 5.25, 4.10
+	// 20:46:50 up 216 days, 27 min, 0 users, load average: 0.59, 0.30, 0.19
+	// 0:53:13 up 204 days, 3:34, 1 user, load average: 0.58, 0.67, 0.68
 
-	version_cmd_result, err := client.RunCommand("version")
+	versionResp, err := client.RunCommand("version")
 	if err != nil {
 		log.Errorf("Executing version command failed: %s", err)
 		return err
 	}
-	log.Debugln("result of version cmd: ", version_cmd_result)
+	log.Debugln("Response of version cmd: ", versionResp)
 	// Examples of the returned uptime string:
 	// Kernel:     2.6.14.2\nFabric OS:  v8.1.2a\nMade on:    Fri Nov 17 18:46:07 2017\nFlash:\t    Thu Nov 29 20:08:53 2018\nBootProm:   1.0.11\n"
 
-	var uptime_in_secs float64
-
-	// Trim leading and trailing whites spaces
-	uptime_cmd_result = strings.TrimSpace(uptime_cmd_result)
-
-	var uptime_cmd_values []string = strings.Split(uptime_cmd_result, " ")
-	log.Debugln("uptime_cmd_values: ", uptime_cmd_values)
-	log.Debugln("# of values in uptime_cmd_values: ", len(uptime_cmd_values))
-	switch len(uptime_cmd_values) {
-	case 12:
-		days = uptime_cmd_values[2]
-		hours_and_mins = strings.Trim(uptime_cmd_values[4], ",")
-		uptime_in_secs = convertToSeconds(days, hours_and_mins)
-	case 13:
-		days = uptime_cmd_values[2]
-		hours_and_mins = "0:" + uptime_cmd_values[4]
-		uptime_in_secs = convertToSeconds(days, hours_and_mins)
+	// Parse uptime response string:
+	// Trim leading and trailing whitespaces
+	uptimeResp = strings.TrimSpace(uptimeResp)
+	// Split uptime response by whitespaces
+	var uptimeRespSplit []string = strings.Split(uptimeResp, " ")
+	log.Debugln("Splitted uptime response: ", uptimeRespSplit)
+	log.Debugln("# of values in uptimeRespSplit: ", len(uptimeRespSplit))
+	var uptimeInSecs float64
+	switch len(uptimeRespSplit) {
+	case 10:
+		// Example of the returned uptime response string:
+		// 15:39:20 up 5:23, 1 users, load averages: 2.75, 2.60, 2.73
+		days := "0"
+		hoursAndMins := strings.Trim(uptimeRespSplit[2], ",")
+		uptimeInSecs = convertToSeconds(days, hoursAndMins)
 	case 11:
-		days = "0"
-		hours_and_mins = "0:" + uptime_cmd_values[2]
-		uptime_in_secs = convertToSeconds(days, hours_and_mins)
+		// Examples of the returned uptime response string:
+		// 17:46 up 5 min, 1 users, load averages: 9.30, 5.25, 4.10
+		days := "0"
+		hoursAndMins := "0:" + uptimeRespSplit[2]
+		uptimeInSecs = convertToSeconds(days, hoursAndMins)
+	case 12:
+		// Example of the returned uptime response string:
+		// 0:53:13 up 204 days, 3:34, 1 user, load average: 0.58, 0.67, 0.68
+		days := uptimeRespSplit[2]
+		hoursAndMins := strings.Trim(uptimeRespSplit[4], ",")
+		uptimeInSecs = convertToSeconds(days, hoursAndMins)
+	case 13:
+		// Example of the returned uptime response string:
+		// 20:46:50 up 216 days, 27 min, 0 users, load average: 0.59, 0.30, 0.19
+		days := uptimeRespSplit[2]
+		hoursAndMins := "0:" + uptimeRespSplit[4]
+		uptimeInSecs = convertToSeconds(days, hoursAndMins)
 	default:
-		log.Errorln("uptime_info is nil or has format error from SAN Switch.")
-		log.Infoln("uptime_info: ", results_uptime)
-		log.Infoln("version_info", result_version)
-		log.Infoln("uptimeSplitResult", result)
-		log.Infoln("len_result", len(result))
+		log.Errorln("Splitted uptime info has less than 11 or more than 13 elements:", len(uptimeRespSplit))
+		log.Infoln("Response of uptime cmd: ", uptimeResp)
+		log.Infoln("Splitted uptime response: ", uptimeRespSplit)
 	}
-	log.Debugln("uptime in seconds: ", uptime_in_secs)
+	log.Debugln("uptime in seconds: ", uptimeInSecs)
 
+	// Parse version response string:
 	re := regexp.MustCompile(`v\d+(\.\d+)*(\w)*`)
-	version := re.FindString(result_version)
+	version := re.FindString(versionResp)
 	log.Debugln("version: ", version)
-	label_value_uptime := append(labelvalue, version)
-	ch <- prometheus.MustNewConstMetric(uptimeDesc, prometheus.GaugeValue, uptime, label_value_uptime...)
+	labelValueUptime := append(labelvalue, version)
+	// Add Metric
+	ch <- prometheus.MustNewConstMetric(uptimeDesc, prometheus.GaugeValue, uptimeInSecs, labelValueUptime...)
+
 	if *enableFullMetrics == true {
-		loadLongterm, err := strconv.ParseFloat(strings.Trim(result[len(result)-3], ","), 64)
-		loadMidterm, err := strconv.ParseFloat(strings.Trim(result[len(result)-2], ","), 64)
-		loadShortterm, err := strconv.ParseFloat(strings.Trim(result[len(result)-1], ",\n"), 64)
-		ch <- prometheus.MustNewConstMetric(loadLongtermDesc, prometheus.GaugeValue, loadLongterm, labelvalue...)
-		ch <- prometheus.MustNewConstMetric(loadMidtermDesc, prometheus.GaugeValue, loadMidterm, labelvalue...)
-		ch <- prometheus.MustNewConstMetric(loadShorttermDesc, prometheus.GaugeValue, loadShortterm, labelvalue...)
+		loadLongtermStr := uptimeRespSplit[len(uptimeRespSplit)-3]
+		loadLongterm, err := strconv.ParseFloat(strings.Trim(loadLongtermStr, ","), 64)
 		if err != nil {
+			log.Errorf("load longterm parsing error for %s: %s", loadLongtermStr, err)
 			return err
 		}
+		ch <- prometheus.MustNewConstMetric(loadLongtermDesc, prometheus.GaugeValue, loadLongterm, labelvalue...)
+
+		loadMidtermStr := uptimeRespSplit[len(uptimeRespSplit)-2]
+		loadMidterm, err := strconv.ParseFloat(strings.Trim(loadMidtermStr, ","), 64)
+		if err != nil {
+			log.Errorf("load midterm parsing error for %s: %s", loadMidtermStr, err)
+			return err
+		}
+		ch <- prometheus.MustNewConstMetric(loadMidtermDesc, prometheus.GaugeValue, loadMidterm, labelvalue...)
+
+		loadShorttermStr := uptimeRespSplit[len(uptimeRespSplit)-1]
+		loadShortterm, err := strconv.ParseFloat(strings.Trim(loadShorttermStr, ",\n"), 64)
+		if err != nil {
+			log.Errorf("loadShortterm parsing error for %s: %s", loadShorttermStr, err)
+			return err
+		}
+		ch <- prometheus.MustNewConstMetric(loadShorttermDesc, prometheus.GaugeValue, loadShortterm, labelvalue...)
 	}
 
-	log.Debugln("The end of uptime collector ")
+	log.Debugln("Leaving uptime collector.")
 	return err
 }
 
-func convertToSeconds(days string, hour_minute string) float64 {
-	day_time, err := strconv.ParseFloat(days, 64)
-	log.Debugln("uptime_day", day_time)
-	hour_and_minute := strings.Split(hour_minute, ":")
-	log.Debugln("hourAndMinute", hour_and_minute)
-	var time float64
-	if len(hour_and_minute) == 2 {
-		hours, err := strconv.ParseFloat(hour_and_minute[0], 64)
-		minutes, err := strconv.ParseFloat(hour_and_minute[1], 64)
-		time = day_time*24*60*60 + hours*60*60 + minutes*60
-		if err != nil {
-			log.Errorln(err)
-		}
-	} else {
-		log.Errorln("uptime_info is nil or has format error from SAN Switch.")
-		log.Infoln("uptime_day: ", day_time)
-		log.Infoln("hourAndMinute: ", hour_and_minute)
-	}
+func convertToSeconds(daysStr string, hoursAndMinutesStr string) float64 {
+	days, err := strconv.ParseFloat(daysStr, 64)
 	if err != nil {
-		log.Errorln(err)
+		log.Errorf("daysStr parsing error for %s: %s", daysStr, err)
 		return 0
-	} else {
+	}
+	log.Debugln("uptime days: ", days)
+	hoursAndMinutesSplit := strings.Split(hoursAndMinutesStr, ":")
+	log.Debugln("hoursAndMinutes: ", hoursAndMinutesSplit)
+	var time float64
+	if len(hoursAndMinutesSplit) == 2 {
+		hours, err := strconv.ParseFloat(hoursAndMinutesSplit[0], 64)
+		if err != nil {
+			log.Errorf("hoursAndMinutesSplit[0] parsing error for %s: %s", hoursAndMinutesSplit[0], err)
+			return 0
+		}
+		minutes, err := strconv.ParseFloat(hoursAndMinutesSplit[1], 64)
+		if err != nil {
+			log.Errorf("hoursAndMinutesSplit[1] parsing error for %s: %s", hoursAndMinutesSplit[1], err)
+			return 0
+		}
+		time = days*24*60*60 + hours*60*60 + minutes*60
 		return time
+	} else {
+		log.Errorln("Splitted hours_minutes has more or less than 2 elements:", len(hoursAndMinutesSplit))
+		log.Infoln("hoursAndMinutesSplit: ", hoursAndMinutesSplit)
+		return 0
 	}
 }

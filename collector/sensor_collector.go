@@ -51,53 +51,69 @@ func (*sensorCollector) Describe(ch chan<- *prometheus.Desc) {
 }
 
 func (c *sensorCollector) Collect(client *connector.SSHConnection, ch chan<- prometheus.Metric, labelvalue []string) error {
-	log.Debugln("sensor collector is starting")
-	results, err := client.RunCommand("sensorshow")
-	log.Debugln("sensorInfo: ", results)
+	log.Debugln("Entering sensor collector ...")
+	sensorResp, err := client.RunCommand("sensorshow")
 	if err != nil {
+		log.Errorf("Executing sensorshow command failed: %s", err)
 		return err
 	}
+	log.Debugln("Response of sensorshow cmd: ", sensorResp)
+	// sensor  1: (Temperature) is Ok, value is 39 C
+	// sensor  2: (Fan        ) is Ok,speed is 8653 RPM
+	// sensor  3: (Fan        ) is Ok,speed is 8653 RPM
+	// sensor  4: (Power Supply) is Ok
+	// sensor  5: (Power Supply) is Ok
 	countTemper := 0
 	countFan := 0
 	countPower := 0
-	metrics := regexp.MustCompile("\n").Split(results, -1)
-	log.Debugln("sensorMetrics: ", metrics)
+	sensorRespSplit := regexp.MustCompile("\n").Split(sensorResp, -1)
 	re := regexp.MustCompile(`Temperature|Fan|Power Supply|Ok|\d+|Absent|Unknown|Predicting failure|Faulty`)
-	for _, line := range metrics {
+	for _, line := range sensorRespSplit {
 		if len(line) > 0 {
-			metric := re.FindAllString(line, -1)
-			log.Debugln("sensorMetric: ", metric)
-			switch metric[1] {
+			sensorMetric := re.FindAllString(line, -1)
+			log.Debugln("sensorMetric: ", sensorMetric)
+			switch sensorMetric[1] {
 			case "Temperature":
+				// [1 Temperature Ok 39]
 				{
-					if len(metric) == 3 {
+					if len(sensorMetric) == 3 {
 						temperature = 0
 					} else {
-						temperature, _ = strconv.ParseFloat(metric[3], 64)
+						temperature, err = strconv.ParseFloat(sensorMetric[3], 64)
+						if err != nil {
+							log.Errorf("temperature parsing error for %s: %s", sensorMetric[2], err)
+							return err
+						}
 					}
 					countTemper += 1
-					labelvalues := append(labelvalue, metric[2], strconv.Itoa(countTemper))
+					labelvalues := append(labelvalue, sensorMetric[2], strconv.Itoa(countTemper))
 					ch <- prometheus.MustNewConstMetric(temperatureDesc, prometheus.GaugeValue, temperature, labelvalues...)
 
 				}
 			case "Fan":
+				// [2 Fan Ok 8653]
 				{
-					if len(metric) == 3 {
+					if len(sensorMetric) == 3 {
 						fanSpeed = 0
 					} else {
-						fanSpeed, _ = strconv.ParseFloat(metric[3], 64)
+						fanSpeed, err = strconv.ParseFloat(sensorMetric[3], 64)
+						if err != nil {
+							log.Errorf("fanSpeed parsing error for %s: %s", sensorMetric[3], err)
+							return err
+						}
 					}
 					countFan += 1
-					labelvalues := append(labelvalue, metric[2], strconv.Itoa(countFan))
+					labelvalues := append(labelvalue, sensorMetric[2], strconv.Itoa(countFan))
 					ch <- prometheus.MustNewConstMetric(fanDesc, prometheus.GaugeValue, fanSpeed, labelvalues...)
 				}
 			case "Power Supply":
+				// [4 Power Supply Ok]
 				countPower += 1
-				labelvalues := append(labelvalue, metric[2], strconv.Itoa(countPower))
-				ch <- prometheus.MustNewConstMetric(powerSupplyDesc, prometheus.GaugeValue, float64(statusValues[metric[2]]), labelvalues...)
+				labelvalues := append(labelvalue, sensorMetric[2], strconv.Itoa(countPower))
+				ch <- prometheus.MustNewConstMetric(powerSupplyDesc, prometheus.GaugeValue, float64(statusValues[sensorMetric[2]]), labelvalues...)
 			}
 		}
 	}
-	log.Debugln("The end of sensor collector")
+	log.Debugln("Leaving sensor collector.")
 	return err
 }

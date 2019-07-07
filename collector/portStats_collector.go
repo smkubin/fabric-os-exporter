@@ -96,53 +96,152 @@ func (*portErrCollector) Describe(ch chan<- *prometheus.Desc) {
 
 func (c *portErrCollector) Collect(client *connector.SSHConnection, ch chan<- prometheus.Metric, labelvalue []string) error {
 
-	log.Debugln("portStats collector is starting")
-	porterrInfo, err := client.RunCommand("porterrshow")
-	log.Debugln("porterr_Info: ", porterrInfo)
+	log.Debugln("Entering portStats collector ...")
+	portErrResp, err := client.RunCommand("porterrshow")
 	if err != nil {
+		log.Errorf("Executing porterrshow command failed: %s", err)
 		return err
 	}
-	var metrics []string = regexp.MustCompile("\n").Split(porterrInfo, -1)
-	log.Debugln("porterrMetrics: ", metrics)
+	log.Debugln("Response of porterrshow cmd: ", portErrResp)
+	//        frames      enc    crc    crc    too    too    bad    enc   disc   link   loss   loss   frjt   fbsy  c3timeout    pcs    uncor\n
+	//      tx     rx      in    err    g_eof  shrt   long   eof     out   c3    fail    sync   sig                  tx    rx     err    err\n
+	//  8:    0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0   \n
+	//  9:    0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0   \n
+	// 10:    0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0   \n
+	// 11:    0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0   \n
+	// 12:    0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0   \n
+	// 13:    0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0   \n
+	// 14:    0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0   \n
+	// 15:    0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0   \n
+	// 16:    0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0   \n
+	// 17:    0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0   \n
+	// 18:    0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0   \n
+	// ...
+	// 47:    0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0      0   \n
+	// Split portErrResp by all (-1) newlines
+	var portErrRespSplit []string = regexp.MustCompile("\n").Split(portErrResp, -1)
+	//	log.Debugln("porterrMetrics: ", metrics)
 	re := regexp.MustCompile(`\d+`)
 	var firstPortIndex, lastPortIndex string
-	for i, line := range metrics {
+	for i, line := range portErrRespSplit {
+		// Skip the first two lines because they contain the metrics column descriptions
 		if i > 1 && len(line) > 0 {
-			metric := re.FindAllString(line, -1)
-			log.Debugln("porterrMetric: ", metric)
+			// Get all metrics of a port and put them into a list
+			errPerPort := re.FindAllString(line, -1)
+			log.Debugln("errPerPort: ", errPerPort)
 			if i == 2 {
-				firstPortIndex = metric[0]
-			} else if i == len(metrics)-2 {
-				lastPortIndex = metric[0]
+				// Setting first port
+				firstPortIndex = errPerPort[0]
+			} else if i == len(portErrRespSplit)-2 {
+				// Setting last port
+				lastPortIndex = errPerPort[0]
 			}
-			labelvalues := append(labelvalue, metric[0])
-			crc_err, err := strconv.ParseFloat(metric[4], 64)
-			crc_g_eof, err := strconv.ParseFloat(metric[5], 64)
-			enc_out, err := strconv.ParseFloat(metric[9], 64)
-			pcs_err, err := strconv.ParseFloat(metric[18], 64)
-			uncor_err, err := strconv.ParseFloat(metric[19], 64)
+			// First value contains port
+			labelvalues := append(labelvalue, errPerPort[0])
+
+			crc_err, err := strconv.ParseFloat(errPerPort[4], 64)
+			if err != nil {
+				log.Errorf("crc_err parsing error for %s: %s", errPerPort[4], err)
+				return err
+			}
+			crc_g_eof, err := strconv.ParseFloat(errPerPort[5], 64)
+			if err != nil {
+				log.Errorf("crc_g_eof parsing error for %s: %s", errPerPort[5], err)
+				return err
+			}
+			enc_out, err := strconv.ParseFloat(errPerPort[9], 64)
+			if err != nil {
+				log.Errorf("enc_out parsing error for %s: %s", errPerPort[9], err)
+				return err
+			}
+			pcs_err, err := strconv.ParseFloat(errPerPort[18], 64)
+			if err != nil {
+				log.Errorf("pcs_err parsing error for %s: %s", errPerPort[18], err)
+				return err
+			}
+			uncor_err, err := strconv.ParseFloat(errPerPort[19], 64)
+			if err != nil {
+				log.Errorf("uncor_err parsing error for %s: %s", errPerPort[19], err)
+				return err
+			}
+
 			ch <- prometheus.MustNewConstMetric(crcErrDesc, prometheus.GaugeValue, crc_err, labelvalues...)
 			ch <- prometheus.MustNewConstMetric(crcGEofDesc, prometheus.GaugeValue, crc_g_eof, labelvalues...)
 			ch <- prometheus.MustNewConstMetric(encOutDesc, prometheus.GaugeValue, enc_out, labelvalues...)
-
 			ch <- prometheus.MustNewConstMetric(pcsErrDesc, prometheus.GaugeValue, pcs_err, labelvalues...)
 			ch <- prometheus.MustNewConstMetric(uncorErrFECDesc, prometheus.GaugeValue, uncor_err, labelvalues...)
 
 			if *enableFullMetrics == true {
-				frames_tx, err := strconv.ParseFloat(metric[1], 64)
-				frames_rx, err := strconv.ParseFloat(metric[2], 64)
-				enc_in, err := strconv.ParseFloat(metric[3], 64)
-				too_short, err := strconv.ParseFloat(metric[6], 64)
-				too_long, err := strconv.ParseFloat(metric[7], 64)
-				bad_eof, err := strconv.ParseFloat(metric[8], 64)
-				disc_c3, err := strconv.ParseFloat(metric[10], 64)
-				link_fail, err := strconv.ParseFloat(metric[11], 64)
-				loss_sync, err := strconv.ParseFloat(metric[12], 64)
-				loss_sig, err := strconv.ParseFloat(metric[13], 64)
-				frjt, err := strconv.ParseFloat(metric[14], 64)
-				fbsy, err := strconv.ParseFloat(metric[15], 64)
-				c3_timeout_tx, err := strconv.ParseFloat(metric[16], 64)
-				c3_timeout_rx, err := strconv.ParseFloat(metric[17], 64)
+				frames_tx, err := strconv.ParseFloat(errPerPort[1], 64)
+				if err != nil {
+					log.Errorf("frames_tx parsing error for %s: %s", errPerPort[1], err)
+					return err
+				}
+				frames_rx, err := strconv.ParseFloat(errPerPort[2], 64)
+				if err != nil {
+					log.Errorf("frames_rx parsing error for %s: %s", errPerPort[2], err)
+					return err
+				}
+				enc_in, err := strconv.ParseFloat(errPerPort[3], 64)
+				if err != nil {
+					log.Errorf("enc_in parsing error for %s: %s", errPerPort[3], err)
+					return err
+				}
+				too_short, err := strconv.ParseFloat(errPerPort[6], 64)
+				if err != nil {
+					log.Errorf("too_short parsing error for %s: %s", errPerPort[6], err)
+					return err
+				}
+				too_long, err := strconv.ParseFloat(errPerPort[7], 64)
+				if err != nil {
+					log.Errorf("too_long parsing error for %s: %s", errPerPort[7], err)
+					return err
+				}
+				bad_eof, err := strconv.ParseFloat(errPerPort[8], 64)
+				if err != nil {
+					log.Errorf("bad_eof parsing error for %s: %s", errPerPort[8], err)
+					return err
+				}
+				disc_c3, err := strconv.ParseFloat(errPerPort[10], 64)
+				if err != nil {
+					log.Errorf("disc_c3 parsing error for %s: %s", errPerPort[10], err)
+					return err
+				}
+				link_fail, err := strconv.ParseFloat(errPerPort[11], 64)
+				if err != nil {
+					log.Errorf("link_fail parsing error for %s: %s", errPerPort[11], err)
+					return err
+				}
+				loss_sync, err := strconv.ParseFloat(errPerPort[12], 64)
+				if err != nil {
+					log.Errorf("loss_sync parsing error for %s: %s", errPerPort[12], err)
+					return err
+				}
+				loss_sig, err := strconv.ParseFloat(errPerPort[13], 64)
+				if err != nil {
+					log.Errorf("loss_sig parsing error for %s: %s", errPerPort[13], err)
+					return err
+				}
+				frjt, err := strconv.ParseFloat(errPerPort[14], 64)
+				if err != nil {
+					log.Errorf("frjt parsing error for %s: %s", errPerPort[14], err)
+					return err
+				}
+				fbsy, err := strconv.ParseFloat(errPerPort[15], 64)
+				if err != nil {
+					log.Errorf("fbsy parsing error for %s: %s", errPerPort[15], err)
+					return err
+				}
+				c3_timeout_tx, err := strconv.ParseFloat(errPerPort[16], 64)
+				if err != nil {
+					log.Errorf("c3_timeout_tx parsing error for %s: %s", errPerPort[16], err)
+					return err
+				}
+				c3_timeout_rx, err := strconv.ParseFloat(errPerPort[17], 64)
+				if err != nil {
+					log.Errorf("c3_timpeout_rx parsing error for %s: %s", errPerPort[17], err)
+					return err
+				}
 				ch <- prometheus.MustNewConstMetric(framesTxDesc, prometheus.GaugeValue, frames_tx, labelvalues...)
 				ch <- prometheus.MustNewConstMetric(framesRxDesc, prometheus.GaugeValue, frames_rx, labelvalues...)
 				ch <- prometheus.MustNewConstMetric(encInDesc, prometheus.GaugeValue, enc_in, labelvalues...)
@@ -157,33 +256,49 @@ func (c *portErrCollector) Collect(client *connector.SSHConnection, ch chan<- pr
 				ch <- prometheus.MustNewConstMetric(fbsyDesc, prometheus.GaugeValue, fbsy, labelvalues...)
 				ch <- prometheus.MustNewConstMetric(c3TimeoutTxDesc, prometheus.GaugeValue, c3_timeout_tx, labelvalues...)
 				ch <- prometheus.MustNewConstMetric(c3TimeoutRxDesc, prometheus.GaugeValue, c3_timeout_rx, labelvalues...)
-				if err != nil {
-					return err
-				}
 			}
-			if err != nil {
-				return err
-			}
-		} else {
-			log.Infoln("porterrMetrics: ", metrics)
 		}
 	}
-	portStatsInfo, err := client.RunCommand("portstatsshow -i " + firstPortIndex + "-" + lastPortIndex)
+	portStatsResp, err := client.RunCommand("portstatsshow -i " + firstPortIndex + "-" + lastPortIndex)
 	if err != nil {
-		log.Infoln("portStats_Info: ", portStatsInfo)
+		log.Errorf("Executing portstatsshow command failed: %s", err)
 		return err
 	}
-	//	fmt.Println(lastPortIndex)
-	var portStats []string = regexp.MustCompile(`\n\n`).Split(portStatsInfo, -1)
-	log.Debugln("portStatsMetrics: ", portStats)
-	for _, portStat := range portStats {
-		if len(portStat) > 0 {
-			portIndex := regexp.MustCompile(`\d+`).FindString(regexp.MustCompile(`port:\s+\d+`).FindString(portStat))
+	// port:  8
+	// =========
+	// stat_wtx            	0                   4-byte words transmitted
+	// stat_wrx            	0                   4-byte words received
+	// stat_ftx            	0                   Frames transmitted
+	// stat_frx            	0                   Frames received
+	// stat_c2_frx         	0                   Class 2 frames received
+	// stat_c3_frx         	0                   Class 3 frames received
+	// ...
+	// other_credit_loss   	0                   Link timeout/complete credit loss
+	// phy_stats_clear_ts  	0           Timestamp of phy_port stats clear
+	// lgc_stats_clear_ts  	0           Timestamp of lgc_port stats clear
+	//
+	// port:  9
+	// =========
+	// stat_wtx            	0                   4-byte words transmitted
+	// stat_wrx            	0                   4-byte words received
+	// stat_ftx            	0                   Frames transmitted
+	// ...
+
+	// Split entries by port
+	var portStats []string = regexp.MustCompile(`\n\n`).Split(portStatsResp, -1)
+	for _, portStatsPerPort := range portStats {
+		log.Debugln("portStatsPerPort: ", portStatsPerPort)
+		if len(portStatsPerPort) > 0 {
+			portIndex := regexp.MustCompile(`\d+`).FindString(regexp.MustCompile(`port:\s+\d+`).FindString(portStatsPerPort))
 			labelvalues := append(labelvalue, portIndex)
-			fecCorDetectedValue, _ := strconv.ParseFloat(regexp.MustCompile(`\d+`).FindString(regexp.MustCompile(`fec_cor_detected\s+\d+`).FindString(portStat)), 64)
+			fecCorDetectedValue, err := strconv.ParseFloat(regexp.MustCompile(`\d+`).FindString(regexp.MustCompile(`fec_cor_detected\s+\d+`).FindString(portStatsPerPort)), 64)
+			if err != nil {
+				log.Errorf("fec_cor_detected parsing error for %s: %s", portStatsPerPort, err)
+				return err
+			}
 			ch <- prometheus.MustNewConstMetric(corFECDesc, prometheus.GaugeValue, fecCorDetectedValue, labelvalues...)
 		}
 	}
-	log.Debugln("The end of portStats collector")
+	log.Debugln("Leaving portStats collector.")
 	return nil
 }
