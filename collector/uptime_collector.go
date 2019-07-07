@@ -44,24 +44,46 @@ func (*uptimeCollector) Describe(ch chan<- *prometheus.Desc) {
 func (c *uptimeCollector) Collect(client *connector.SSHConnection, ch chan<- prometheus.Metric, labelvalue []string) error {
 	log.Debugln("uptime collector is starting")
 
-	results_uptime, err := client.RunCommand("uptime")
-	result_version, err := client.RunCommand("version")
-	log.Debugln("uptime_info: ", results_uptime)
-	log.Debugln("version_info", result_version)
+	uptime_cmd_result, err := client.RunCommand("uptime")
 	if err != nil {
+		log.Errorf("Executing uptime command failed: %s", err)
 		return err
 	}
-	var uptime float64
-	var result []string = strings.Split(results_uptime, " ")
-	log.Debugln("uptimeSplitResult", result)
-	log.Debugln("len_reuslt", len(result))
-	switch len(result) {
-	case 13:
-		uptime = convertToSeconds(result[3], strings.Trim(result[5], ","))
-	case 14:
-		uptime = convertToSeconds(result[3], "0:"+result[5])
+	log.Debugln("result of uptime cmd: ", uptime_cmd_result)
+	// Examples of the returned uptime string:
+	//   20:46:50 up 216 days, 27 min, 0 users, load average: 0.59, 0.30, 0.19\n
+	//   0:53:13 up 204 days, 3:34, 1 user, load average: 0.58, 0.67, 0.68\n
+
+	version_cmd_result, err := client.RunCommand("version")
+	if err != nil {
+		log.Errorf("Executing version command failed: %s", err)
+		return err
+	}
+	log.Debugln("result of version cmd: ", version_cmd_result)
+	// Examples of the returned uptime string:
+	// Kernel:     2.6.14.2\nFabric OS:  v8.1.2a\nMade on:    Fri Nov 17 18:46:07 2017\nFlash:\t    Thu Nov 29 20:08:53 2018\nBootProm:   1.0.11\n"
+
+	var uptime_in_secs float64
+
+	// Trim leading and trailing whites spaces
+	uptime_cmd_result = strings.TrimSpace(uptime_cmd_result)
+
+	var uptime_cmd_values []string = strings.Split(uptime_cmd_result, " ")
+	log.Debugln("uptime_cmd_values: ", uptime_cmd_values)
+	log.Debugln("# of values in uptime_cmd_values: ", len(uptime_cmd_values))
+	switch len(uptime_cmd_values) {
 	case 12:
-		uptime = convertToSeconds("0", "0:"+result[3])
+		days = uptime_cmd_values[2]
+		hours_and_mins = strings.Trim(uptime_cmd_values[4], ",")
+		uptime_in_secs = convertToSeconds(days, hours_and_mins)
+	case 13:
+		days = uptime_cmd_values[2]
+		hours_and_mins = "0:" + uptime_cmd_values[4]
+		uptime_in_secs = convertToSeconds(days, hours_and_mins)
+	case 11:
+		days = "0"
+		hours_and_mins = "0:" + uptime_cmd_values[2]
+		uptime_in_secs = convertToSeconds(days, hours_and_mins)
 	default:
 		log.Errorln("uptime_info is nil or has format error from SAN Switch.")
 		log.Infoln("uptime_info: ", results_uptime)
@@ -69,8 +91,8 @@ func (c *uptimeCollector) Collect(client *connector.SSHConnection, ch chan<- pro
 		log.Infoln("uptimeSplitResult", result)
 		log.Infoln("len_result", len(result))
 	}
+	log.Debugln("uptime in seconds: ", uptime_in_secs)
 
-	log.Debugln("uptime: ", uptime)
 	re := regexp.MustCompile(`v\d+(\.\d+)*(\w)*`)
 	version := re.FindString(result_version)
 	log.Debugln("version: ", version)
