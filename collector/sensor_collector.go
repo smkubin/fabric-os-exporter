@@ -53,6 +53,7 @@ func (*sensorCollector) Describe(ch chan<- *prometheus.Desc) {
 func (c *sensorCollector) Collect(client *connector.SSHConnection, ch chan<- prometheus.Metric, labelvalue []string) error {
 	log.Debugln("sensor collector is starting")
 	results, err := client.RunCommand("sensorshow")
+	log.Debugln("sensorInfo: ", results)
 	if err != nil {
 		return err
 	}
@@ -60,10 +61,13 @@ func (c *sensorCollector) Collect(client *connector.SSHConnection, ch chan<- pro
 	countFan := 0
 	countPower := 0
 	metrics := regexp.MustCompile("\n").Split(results, -1)
+	log.Debugln("sensorMetrics: ", metrics)
 	re := regexp.MustCompile(`Temperature|Fan|Power Supply|Ok|\d+|Absent|Unknown|Predicting failure|Faulty`)
 	for _, line := range metrics {
 		if len(line) > 0 {
-			switch metric := re.FindAllString(line, -1); metric[1] {
+			metric := re.FindAllString(line, -1)
+			log.Debugln("sensorMetric: ", metric)
+			switch metric[1] {
 			case "Temperature":
 				{
 					if len(metric) == 3 {
@@ -94,5 +98,6 @@ func (c *sensorCollector) Collect(client *connector.SSHConnection, ch chan<- pro
 			}
 		}
 	}
+	log.Debugln("The end of sensor collector")
 	return err
 }
