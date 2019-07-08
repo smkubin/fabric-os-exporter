@@ -26,12 +26,12 @@ func (c *SSHConnection) RunCommand(cmd string) (string, error) {
 	defer c.mu.Unlock()
 
 	if c.client == nil {
-		return "", errors.New("not conneted")
+		return "", errors.Errorf("Running command on %s:%s: Not connected.", c.host, cmd)
 	}
 
 	session, err := c.client.NewSession()
 	if err != nil {
-		return "", errors.Wrap(err, "could not open session")
+		return "", errors.Wrapf(err, "Running command on %s:%s: Coud not open session.", c.host, cmd)
 	}
 	defer session.Close()
 
@@ -40,7 +40,7 @@ func (c *SSHConnection) RunCommand(cmd string) (string, error) {
 
 	err = session.Run(cmd)
 	if err != nil {
-		return "", errors.Wrap(err, "could not run command ")
+		return "", errors.Wrapf(err, "Running command on %s:%s: Coud not run command.", c.host, cmd)
 	}
 	// log.Debugf("Output for %s:%s\n", c.host, string(b.Bytes()))
 	return string(b.Bytes()), nil
