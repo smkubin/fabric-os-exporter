@@ -12,6 +12,7 @@ Exporter for devices running Fabric OS to use with https://prometheus.io/
 | --collector.name | Collector are enabled, the name means name of CLI Command | By default enabled collectors: uptime,sensorshow,portstatsshow. |
 | --no-collector.name | Collectors that are enabled by default can be disabled, the name means name of CLI Command | By default disabled collectors: . |
 | --enable-full-metrics | Enable full of metrics | false |
+| --log.level | Only log messages with the given severity or above. Valid levels: [debug, info, warn, error, fatal] | info |
 
 
 ## Building and running
