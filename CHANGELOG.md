@@ -1,8 +1,9 @@
-
-### Changes 
+## 0.4.0 / 2019-07-10
+### Changes
 * [FIX] Fix the 'uptime' metric
 * [FEATURE] Add more debug information
 * [FIX] Fix the error that temperature and fan_speed have wrong label
+* [CHANGE] Log more information in error path
 
 ## 0.3.0 / 2019-06-28
 ### Changes
