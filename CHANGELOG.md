@@ -1,3 +1,6 @@
+### Changes
+* [FIXBUG] Handle err when the sanswitch is disabled
+
 ## 0.4.0 / 2019-07-10
 ### Changes
 * [FIX] Fix the 'uptime' metric

@@ -42,7 +42,6 @@ type FabricOSCollector struct {
 //newFabricosCollector creates a new fabric os Collector.
 // func NewFabricOSCollector(targets []string, connectionManager *connector.SSHConnectionManager) (*FabricOSCollector, error) {
 func NewFabricOSCollector(targets []connector.Targets) (*FabricOSCollector, error) {
-
 	collectors := make(map[string]Collector)
 	for key, enabled := range collectorState {
 		if *enabled {
@@ -99,10 +98,10 @@ func (c *FabricOSCollector) collectForHost(host connector.Targets, ch chan<- pro
 	defer wg.Done()
 	start := time.Now()
 	success := 0
-	var hostname []string
+	var hostname string
 	defer func() {
-		ch <- prometheus.MustNewConstMetric(scrapeDurationDesc, prometheus.GaugeValue, time.Since(start).Seconds(), host.IpAddress, hostname[1])
-		ch <- prometheus.MustNewConstMetric(scrapeSuccessDesc, prometheus.GaugeValue, float64(success), host.IpAddress, hostname[1])
+		ch <- prometheus.MustNewConstMetric(scrapeDurationDesc, prometheus.GaugeValue, time.Since(start).Seconds(), host.IpAddress, hostname)
+		ch <- prometheus.MustNewConstMetric(scrapeSuccessDesc, prometheus.GaugeValue, float64(success), host.IpAddress, hostname)
 	}()
 
 	connManager, err := connector.NewConnectionManager(host.Userid, host.Password)
@@ -118,17 +117,29 @@ func (c *FabricOSCollector) collectForHost(host connector.Targets, ch chan<- pro
 	}
 	success = 1
 
-	fabric_metrics, err := conn.RunCommand("fabricshow")
-	re := regexp.MustCompile(`"(.*?)"`)
-	hostname = re.FindStringSubmatch(fabric_metrics)
-	log.Debugln("hostname: ", hostname[1])
-	// fabricClient := connector.NewFabricClient(conn)
-	for name, col := range c.Collectors {
-		err = col.Collect(conn, ch, []string{host.IpAddress, hostname[1]})
-		if err != nil && err.Error() != "EOF" {
-			log.Errorln(name + ": " + err.Error())
-		}
+	fabricResp, err := conn.RunCommand("fabricshow")
+	if err != nil {
+		log.Errorf("Executing fabricshow command failed: %s", err)
 	}
+	// 	Switch ID   Worldwide Name          Enet IP Addr    FC IP Addr      Name
+	// -------------------------------------------------------------------------
+	//   1: fffc01 10:00:88:94:71:61:5d:73 172.16.64.17    0.0.0.0        >"SAN1"
+	log.Debugln("Response of fabricshow cmd: ", fabricResp)
+	re := regexp.MustCompile(`>"(.*?)"`)
+	hostname = re.FindString(fabricResp)
+	hostname = hostname[2 : len(hostname)-1]
+	log.Debugln("hostname: ", hostname)
+	if hostname != "" {
+		for name, col := range c.Collectors {
+			err = col.Collect(conn, ch, []string{host.IpAddress, hostname})
+			if err != nil && err.Error() != "EOF" {
+				log.Errorln(name + ": " + err.Error())
+			}
+		}
+	} else {
+		log.Errorln("The hostname of ", host.IpAddress, "is null, please check if the devcie is enabled.")
+	}
+
 }
 
 // Collector is the interface a collector has to implement.
