@@ -51,13 +51,17 @@ func main() {
 	http.Handle(*metricsPath, newHandler(!*disableExporterMetrics))
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`<html>
+		if r.Method == "GET" {
+			w.Write([]byte(`<html>
 			<head><title>fabric os exporter</title></head>
 			<body>
 				<h1>fabric os exporter</h1>
 				<p><a href='` + *metricsPath + `'>Metrics</a></p>
 			</body>
 		</html>`))
+		} else {
+			http.Error(w, "403 Forbidden", 403)
+		}
 	})
 
 	log.Infof("Listening for %s on %s\n", *metricsPath, *listenAddress)
@@ -82,22 +86,25 @@ func newHandler(includeExporterMetrics bool) *handler {
 
 // ServeHTTP implements http.Handler.
 func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		targets, err := targetsForRequest(r)
+		if err != nil {
+			http.Error(w, err.Error(), 400)
+			return
+		} else {
+			handler, err := h.innerHandler(targets...)
+			if err != nil {
+				log.Warnln("Couldn't create  metrics handler:", err)
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write([]byte(fmt.Sprintf("Couldn't create  metrics handler: %s", err)))
+				return
+			}
 
-	targets, err := targetsForRequest(r)
-	if err != nil {
-		http.Error(w, err.Error(), 400)
+			handler.ServeHTTP(w, r)
+		}
+	} else {
+		http.Error(w, "403 Forbidden", 403)
 	}
-
-	handler, err := h.innerHandler(targets...)
-
-	if err != nil {
-		log.Warnln("Couldn't create  metrics handler:", err)
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(fmt.Sprintf("Couldn't create  metrics handler: %s", err)))
-		return
-	}
-
-	handler.ServeHTTP(w, r)
 
 }
 func (h *handler) innerHandler(targets ...connector.Targets) (http.Handler, error) {
