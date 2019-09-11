@@ -1,3 +1,4 @@
+## 0.5.0 / 2019-09-11
 ### Changes
 * [CHANGE] Diable http methods other than GET
 * [FIXBUG] Handle err when the sanswitch is disabled
