@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/fabric-os-exporter/connector"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
+	"github.ibm.com/ZaaS/fabric-os-exporter/connector"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
 

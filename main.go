@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/fabric-os-exporter/collector"
-	"github.com/fabric-os-exporter/connector"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/log"
 	"github.com/prometheus/common/version"
+	"github.ibm.com/ZaaS/fabric-os-exporter/collector"
+	"github.ibm.com/ZaaS/fabric-os-exporter/connector"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
 
