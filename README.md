@@ -23,13 +23,10 @@ Exporter for devices running Fabric OS to use with https://prometheus.io/
         ```
         export GOPATH=your_gopath
         cd your_gopath
-        mkdir src
-        cd src
-        mkdir github.com
-        cd github.com
         git clone git@github.ibm.com:ZaaS/fabric-os-exporter.git
         cd fabric-os-exporter
         go build
+        go install (Optional but recommended. This step will copy fabric-os-exporter binary package to $GOPATH/bin.)
         ```
     * Docker image
         ``` docker build -t fabric-os-exporter . ```
