@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/gorilla/csrf"
+	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/log"
@@ -29,6 +31,8 @@ type handler struct {
 }
 
 func main() {
+	r := mux.NewRouter()
+	CSRF := csrf.Protect([]byte("fabric-exporter-32-byte-auth-key"))
 	// Parse flags.
 	log.AddFlags(kingpin.CommandLine)
 	kingpin.Version(version.Print("fabric_os_exporter"))
@@ -48,24 +52,26 @@ func main() {
 	log.Infoln("Build context", version.BuildContext())
 
 	// Launch http services
-	http.Handle(*metricsPath, newHandler(!*disableExporterMetrics))
+	r.Handle(*metricsPath, newHandler(!*disableExporterMetrics))
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" {
-			w.Write([]byte(`<html>
-			<head><title>fabric os exporter</title></head>
-			<body>
-				<h1>fabric os exporter</h1>
-				<p><a href='` + *metricsPath + `'>Metrics</a></p>
-			</body>
-		</html>`))
-		} else {
-			http.Error(w, "403 Forbidden", 403)
-		}
-	})
+	r.HandleFunc("/", rootHandler)
 
 	log.Infof("Listening for %s on %s\n", *metricsPath, *listenAddress)
-	log.Fatal(http.ListenAndServe(*listenAddress, nil))
+	log.Fatal(http.ListenAndServe(*listenAddress, CSRF(r)))
+}
+
+func rootHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		w.Write([]byte(`<html>
+		<head><title>fabric os exporter</title></head>
+		<body>
+			<h1>fabric os exporter</h1>
+			<p><a href='` + *metricsPath + `'>Metrics</a></p>
+		</body>
+	</html>`))
+	} else {
+		http.Error(w, "403 Forbidden", 403)
+	}
 }
 
 func newHandler(includeExporterMetrics bool) *handler {
