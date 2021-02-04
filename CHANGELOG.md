@@ -1,3 +1,15 @@
+## 0.5.3 / 2021-02-04
+### Changes
+* [CHANGE] Fix parsing error when the fec_cor_detected metric is missing
+
+## 0.5.2 / 2020-11-23
+### Changes
+* [CHANGE] Fix CrossSiteRequestForgery vulnerabilities
+
+## 0.5.1 / 2020-01-17
+### Changes
+* [CHANGE] Use go module to organize the dependency modules
+
 ## 0.5.0 / 2019-09-11
 ### Changes
 * [CHANGE] Diable http methods other than GET
