@@ -289,9 +289,14 @@ func (c *portErrCollector) Collect(client *connector.SSHConnection, ch chan<- pr
 	for _, portStatsPerPort := range portStats {
 		log.Debugln("portStatsPerPort: ", portStatsPerPort)
 		if len(portStatsPerPort) > 0 {
+			fecCorDetected := regexp.MustCompile(`fec_cor_detected\s+\d+`).FindString(portStatsPerPort)
+			if fecCorDetected == "" {
+				log.Info("The fec_cor_detected metric not found!")
+				return nil
+			}
 			portIndex := regexp.MustCompile(`\d+`).FindString(regexp.MustCompile(`port:\s+\d+`).FindString(portStatsPerPort))
 			labelvalues := append(labelvalue, portIndex)
-			fecCorDetectedValue, err := strconv.ParseFloat(regexp.MustCompile(`\d+`).FindString(regexp.MustCompile(`fec_cor_detected\s+\d+`).FindString(portStatsPerPort)), 64)
+			fecCorDetectedValue, err := strconv.ParseFloat(regexp.MustCompile(`\d+`).FindString(fecCorDetected), 64)
 			if err != nil {
 				log.Errorf("fec_cor_detected parsing error for %s: %s", portStatsPerPort, err)
 				return err
