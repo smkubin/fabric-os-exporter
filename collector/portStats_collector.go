@@ -289,19 +289,23 @@ func (c *portErrCollector) Collect(client *connector.SSHConnection, ch chan<- pr
 	for _, portStatsPerPort := range portStats {
 		log.Debugln("portStatsPerPort: ", portStatsPerPort)
 		if len(portStatsPerPort) > 0 {
-			fecCorDetected := regexp.MustCompile(`fec_cor_detected\s+\d+`).FindString(portStatsPerPort)
-			if fecCorDetected == "" {
-				log.Info("The fec_cor_detected metric not found!")
-				return nil
+			fecCorrected := regexp.MustCompile(`fec_cor_detected\s+\d+`).FindString(portStatsPerPort)
+			if fecCorrected == "" {
+				// The fec_cor_detected is replaced with fec_corrected_rate in newer version of SAN firmware
+				fecCorrected = regexp.MustCompile(`fec_corrected_rate\s+\d+`).FindString(portStatsPerPort)
+				if fecCorrected == "" {
+					log.Errorln("The fec_cor_detected/fec_corrected_rate metric not found!")
+					return nil
+				}
 			}
 			portIndex := regexp.MustCompile(`\d+`).FindString(regexp.MustCompile(`port:\s+\d+`).FindString(portStatsPerPort))
 			labelvalues := append(labelvalue, portIndex)
-			fecCorDetectedValue, err := strconv.ParseFloat(regexp.MustCompile(`\d+`).FindString(fecCorDetected), 64)
+			fecCorrectedValue, err := strconv.ParseFloat(regexp.MustCompile(`\d+`).FindString(fecCorrected), 64)
 			if err != nil {
-				log.Errorf("fec_cor_detected parsing error for %s: %s", portStatsPerPort, err)
+				log.Errorf("fec_cor_detected/fec_corrected_rate parsing error for %s: %s", portStatsPerPort, err)
 				return err
 			}
-			ch <- prometheus.MustNewConstMetric(corFECDesc, prometheus.GaugeValue, fecCorDetectedValue, labelvalues...)
+			ch <- prometheus.MustNewConstMetric(corFECDesc, prometheus.GaugeValue, fecCorrectedValue, labelvalues...)
 		}
 	}
 	log.Debugln("Leaving portStats collector.")

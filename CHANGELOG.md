@@ -1,6 +1,7 @@
-## 0.5.3 / 2021-02-04
+## 0.5.3 / 2021-02-05
 ### Changes
-* [CHANGE] Fix parsing error when the fec_cor_detected metric is missing
+* [CHANGE] Have the metric name compatible with fec_cor_detected and fec_corrected_rate
+* [FIXBUG] Fix parsing error when the fec_cor_detected metric is missing
 
 ## 0.5.2 / 2020-11-23
 ### Changes
