@@ -8,7 +8,7 @@ Exporter for devices running Fabric OS to use with https://prometheus.io/
 | --config.file | Path to configuration file | fabricos.yaml |
 | --web.telemetry-path | Path under which to expose metrics | /metrics |
 | --web.listen-address | Address on which to expose metrics and web interface | :9879 |
-| --web.disable-exporter-metrics | Exclude metrics about the exporter itself (promhttp_*, process_*, go_*) | false |
+| --web.disable-exporter-metrics | Exclude metrics about the exporter itself (promhttp_*, process_*, go_*) | true |
 | --collector.name | Collector are enabled, the name means name of CLI Command | By default enabled collectors: uptime,sensorshow,portstatsshow. |
 | --no-collector.name | Collectors that are enabled by default can be disabled, the name means name of CLI Command | By default disabled collectors: . |
 | --enable-full-metrics | Enable full of metrics | false |
@@ -52,7 +52,7 @@ targets:
 
 | CLI Command | Description | Default | Metrics |
 | --- | --- | --- | --- |
-| - | Metrics from the exporter itself. | Enabled | [List](docs/exporter_metrics.md) |
+| - | Metrics from the exporter itself. | Disabled | [List](docs/exporter_metrics.md) |
 | uptime | Displays length of time the system has been operational. | Enabled | [List](docs/uptime_metrics.md) |
 | sensorshow | display the current temperature, fan, and power supply status and readings from sensors located on the switch. | Enabled | [List](docs/sensor_metrics.md)|
 | portstatsshow | Displays port hardware statistics. | Enabled | [List](docs/portstatsshow_metrics.md) |
