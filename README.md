@@ -35,7 +35,7 @@ Exporter for devices running Fabric OS to use with https://prometheus.io/
         ```./fabric-os-exporter --config.file=/etc/fabricos/fabricos.yaml```
 
     * Run as docker image
-        ```docker run -it -d -p 9879:9879 -v /etc/fabricos/fabricos.yaml:/etc/fabricos/fabricos.yaml --name fabric-os-exporter fabric-os-exporter --config.file=/etc/fabricos/fabricos.yaml```
+        ```docker run -it -d -p 9879:9879 -v /etc/fabricos/fabricos.yaml:/etc/fabricos/fabricos.yaml:ro --name fabric-os-exporter fabric-os-exporter --config.file=/etc/fabricos/fabricos.yaml```
     * Visit http://localhost:9879/metrics
 
 ## Configuration
