@@ -1,7 +1,11 @@
 package connector
 
 import (
+	"bytes"
+	"encoding/base64"
+	"io/ioutil"
 	"net"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -13,6 +17,7 @@ import (
 )
 
 const timeoutInSeconds = 5
+const pubkeyDir = "/opt/fabricos/"
 
 // Option defines options for the manager which are applied on creation
 type Option func(*SSHConnectionManager)
@@ -48,6 +53,38 @@ type SSHConnectionManager struct {
 	mu                sync.Mutex
 }
 
+// Store the remote's hostkey in local on the first time for latter access verification
+func hostKeyCallback(hostname string, remote net.Addr, key ssh.PublicKey) error {
+	fn := pubkeyDir + "." + hostname + ".key"
+	if _, err := os.Stat(fn); err != nil {
+		if os.IsNotExist(err) {
+			// store the remote ssh hostkey
+			log.Infof("Storing the remote hostkey to %s", fn)
+			return ioutil.WriteFile(fn, []byte(base64.StdEncoding.EncodeToString(key.Marshal())), 0600)
+		} else {
+			return errors.Wrapf(err, "error outside the os package", fn)
+		}
+	}
+	// read the stored pubkey of the remote host
+	f, err := ioutil.ReadFile(fn)
+	if err != nil {
+		return errors.Wrapf(err, "error reading the %s file", fn)
+	}
+	pubkeyStr, err := base64.StdEncoding.DecodeString(string(f))
+	if err != nil {
+		return errors.Wrap(err, "error decoding the local pubkey with base64")
+	}
+	pubkey, err := ssh.ParsePublicKey(pubkeyStr)
+	if err != nil {
+		return errors.Wrap(err, "error parsing to ssh.PublicKey")
+	}
+	if !bytes.Equal(pubkey.Marshal(), key.Marshal()) {
+		return errors.Wrap(err, "ssh: host key mismatch")
+	}
+	log.Info("ssh: host key matched successfully")
+	return nil
+}
+
 // NewConnectionManager creates a new connection manager
 func NewConnectionManager(user string, passwd string, opts ...Option) (*SSHConnectionManager, error) {
 	// pk, err := loadPublicKeyFile(key)
@@ -58,7 +95,7 @@ func NewConnectionManager(user string, passwd string, opts ...Option) (*SSHConne
 	cfg := &ssh.ClientConfig{
 		User:            user,
 		Auth:            []ssh.AuthMethod{ssh.Password(passwd)},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		HostKeyCallback: hostKeyCallback,
 		Timeout:         timeoutInSeconds * time.Second,
 	}
 
