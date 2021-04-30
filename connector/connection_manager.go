@@ -53,7 +53,7 @@ type SSHConnectionManager struct {
 	mu                sync.Mutex
 }
 
-// Store the remote's hostkey in local on the first time for latter access verification
+// Store the remote public key of SAN Switch in the local file at the first time for later verfication
 func hostKeyCallback(hostname string, remote net.Addr, key ssh.PublicKey) error {
 	fn := pubkeyDir + "." + hostname + ".key"
 	if _, err := os.Stat(fn); err != nil {
