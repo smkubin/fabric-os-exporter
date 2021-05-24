@@ -59,7 +59,7 @@ func hostKeyCallback(hostname string, remote net.Addr, key ssh.PublicKey) error 
 	if _, err := os.Stat(fn); err != nil {
 		if os.IsNotExist(err) {
 			// store the remote ssh hostkey
-			log.Infof("Storing the remote hostkey to %s", fn)
+			log.Debugf("Storing the remote hostkey to %s", fn)
 			return ioutil.WriteFile(fn, []byte(base64.StdEncoding.EncodeToString(key.Marshal())), 0600)
 		} else {
 			return errors.Wrapf(err, "error outside the os package", fn)
@@ -81,7 +81,7 @@ func hostKeyCallback(hostname string, remote net.Addr, key ssh.PublicKey) error 
 	if !bytes.Equal(pubkey.Marshal(), key.Marshal()) {
 		return errors.Wrap(err, "ssh: host key mismatch")
 	}
-	log.Info("ssh: host key matched successfully")
+	log.Debug("ssh: host key matched successfully")
 	return nil
 }
 
