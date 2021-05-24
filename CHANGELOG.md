@@ -1,3 +1,9 @@
+## 0.5.5 / 2021-05-24
+
+### Changes
+
+* [CHANGE] Change the level of some log messages from info to debug
+
 ## 0.5.4 / 2021-04-30
 
 ### Changes
