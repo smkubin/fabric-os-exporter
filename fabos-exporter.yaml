@@ -1,0 +1,30 @@
+apiVersion: v1
+data:
+  fabricos.yaml: |
+    targets:
+      - ipAddress: <switch_ip>
+        userid: <role that can do chassis commands>
+        password: <passw> 
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  name: fabos-exporter-config
+---
+apiVersion: v1
+kind: Pod
+metadata: 
+  name: prom-fabos-exp 
+spec:
+  containers:
+    - name: fabos
+      image: localhost/fabos-exp
+      args: ["--config.file=/etc/fabric-os-exporter/fabricos.yaml", "--enable-full-metrics"]
+      ports:
+        - containerPort: 9879 
+      volumeMounts:
+        - name: exp-conf
+          mountPath: /etc/fabric-os-exporter
+  volumes:
+    - name: exp-conf
+      configMap:
+        name: fabos-exporter-config

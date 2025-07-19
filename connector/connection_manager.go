@@ -17,7 +17,7 @@ import (
 )
 
 const timeoutInSeconds = 5
-const pubkeyDir = "/opt/fabricos/"
+const pubkeyDir = "/root/"
 
 // Option defines options for the manager which are applied on creation
 type Option func(*SSHConnectionManager)

@@ -159,11 +159,13 @@ func (c *portErrCollector) Collect(client *connector.SSHConnection, ch chan<- pr
 				log.Errorf("pcs_err parsing error for %s: %s", errPerPort[18], err)
 				return err
 			}
-			uncor_err, err := strconv.ParseFloat(errPerPort[19], 64)
-			if err != nil {
-				log.Errorf("uncor_err parsing error for %s: %s", errPerPort[19], err)
-				return err
-			}
+//  on older platforms this field doesn't exist.
+//			uncor_err, err := strconv.ParseFloat(errPerPort[19], 64)
+//			if err != nil {
+//				log.Errorf("uncor_err parsing error for %s: %s", errPerPort[19], err)
+//				return err
+//			}
+                        uncor_err := 0.0
 
 			ch <- prometheus.MustNewConstMetric(crcErrDesc, prometheus.GaugeValue, crc_err, labelvalues...)
 			ch <- prometheus.MustNewConstMetric(crcGEofDesc, prometheus.GaugeValue, crc_g_eof, labelvalues...)

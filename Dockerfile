@@ -1,4 +1,4 @@
-FROM s390x/busybox:latest
+FROM busybox:latest
 # FROM quay.io/prometheus/busybox:latest
 COPY fabricos.yaml /etc/fabric-os-exporter/fabricos.yaml
 COPY fabric-os-exporter /bin/fabric-os-exporter

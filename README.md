@@ -1,3 +1,8 @@
+-----------------------------------------
+go build && podman build -t fabos-exp .
+podman kube play fabos-exporter.yaml
+
+-----------------------------------------
 # fabric-os-exporter
 Exporter for devices running Fabric OS to use with https://prometheus.io/
 
