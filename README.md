@@ -1,6 +1,11 @@
 -----------------------------------------
+note to self:
+
 go build && podman build -t fabos-exp .
+
 podman kube play fabos-exporter.yaml
+
+Limitedly useful: when stat goes over 999, brocade porterrshow converts it to k/m/... notation, which this thing doesn't understand.
 
 -----------------------------------------
 # fabric-os-exporter
